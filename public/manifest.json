@@ -1,0 +1,11 @@
+{
+  "name": "Assistente Virtual Bíblico - Biblical Chatbot",
+  "short_name": "Assistente Bíblico",
+  "description": "An intelligent chatbot powered by Gemini, designed to provide insights, answer questions, and discuss topics related to the Holy Bible. Features multiple modes including fast responses, deep thinking, and web-grounded answers.",
+  "start_url": "/assistente-b-blico/",
+  "scope": "/assistente-b-blico/",
+  "display": "standalone",
+  "background_color": "#f3f4f6",
+  "theme_color": "#ffffff",
+  "icons": []
+}
