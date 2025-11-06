@@ -17,7 +17,7 @@ const Mascot: React.FC<MascotProps> = ({ isThinking }) => {
   return (
     <div className={containerClasses} title="Assistente Bíblico">
       <img 
-        src="./logo.svg" 
+        src="/logo.svg" 
         alt="Mascote Robô do Assistente Bíblico"
         className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
       />
