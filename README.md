@@ -1,54 +1,64 @@
 # Assistente Virtual Bíblico - Biblical Chatbot
 
-This is an intelligent chatbot powered by Gemini, designed to provide insights, answer questions, and discuss topics related to the Holy Bible.
+Este é um chatbot inteligente com a tecnologia Gemini, projetado para fornecer insights, responder perguntas e discutir tópicos relacionados à Bíblia Sagrada.
 
-## Deploying to Netlify (Free Tier)
+## Como Publicar sua Própria Versão (Gratuitamente no Netlify)
 
-This project is configured to be deployed as a static website on Netlify. The free tier is generous and perfect for this type of application. Follow these steps to deploy your version.
-
----
-
-### Step 1: Push Your Code to a Git Provider
-
-1.  Ensure your code is pushed to a repository on GitHub, GitLab, or Bitbucket.
-2.  Make sure your main branch is up-to-date.
+Siga estes passos para publicar e configurar sua própria versão do assistente.
 
 ---
 
-### Step 2: Deploy on Netlify
+### Passo 1: Obtenha o Código
 
-1.  **Sign up or Log in** to your [Netlify](https://www.netlify.com/) account.
-2.  From your dashboard, click **"Add new site"** and then select **"Import an existing project"**.
-3.  **Connect to your Git provider** (e.g., GitHub) and authorize Netlify.
-4.  **Select the repository** for this project.
-5.  **Configure deployment settings**:
-    *   **Branch to deploy**: `main` (or your primary branch).
-    *   **Build command**: Leave this field **empty**. This project runs without a build step.
-    *   **Publish directory**: Leave this field **empty** or set it to `/` (root).
-6.  Click **"Deploy site"**. Netlify will start deploying your application.
+- **Se você está vendo este projeto no AI Studio:** Clique em "Copiar para o seu espaço de trabalho" para criar sua própria cópia do projeto.
+- **Se você está no GitHub:** Faça um "Fork" deste repositório para a sua conta do GitHub.
 
 ---
 
-### Step 3: Set Environment Variables
+### Passo 2: Publique no Netlify
 
-Your Gemini API Key needs to be provided to the application as an environment variable.
-
-1.  In your new site's dashboard on Netlify, go to **Site configuration** > **Build & deploy** > **Environment**.
-2.  Under **Environment variables**, click **"Edit variables"**.
-3.  Add a new variable:
-    *   **Key**: `API_KEY`
-    *   **Value**: Paste your actual Gemini API Key here.
-4.  Click **Save**.
-5.  To apply the new environment variable, you need to trigger a new deploy. Go to the **Deploys** tab for your site and in the "Production deploys" section, open the "Trigger deploy" dropdown and select **"Deploy site"**.
-
-After a few minutes, your site will be live with the API key configured. You can find your site's URL on the Netlify dashboard.
+1.  **Crie uma conta** ou faça login no [Netlify](https://www.netlify.com/) (o plano gratuito é suficiente).
+2.  No seu painel, clique em **"Add new site"** e escolha **"Import an existing project"**.
+3.  **Conecte-se ao seu provedor Git** (por exemplo, GitHub) e autorize o Netlify.
+4.  **Selecione o repositório** do seu projeto de chatbot.
+5.  **Configurações de implantação**:
+    *   **Branch to deploy**: `main` (ou sua branch principal).
+    *   **Build command**: Deixe este campo **vazio**.
+    *   **Publish directory**: Deixe este campo **vazio**.
+6.  Clique em **"Deploy site"**. O Netlify começará a publicar sua aplicação.
 
 ---
 
-## Development Notes
+### Passo 3: Adicione sua Chave de API do Gemini (O Passo Mais Importante!)
 
-This is a modern, static web application built directly with React and TypeScript that runs in the browser without a build step.
+Para que o chatbot funcione, ele precisa da sua chave de API do Google Gemini.
 
-*   **No Build Required:** The project uses ES modules and imports libraries from a CDN, so you do not need to run `npm install` or `npm run dev`.
-*   **API Key:** The application is designed to get the Gemini API key from an environment variable (`process.env.API_KEY`) that is securely provided by the hosting environment (like Netlify). You do not need to create a `.env` file or manage the key in the code.
-*   **Local Testing:** To test the files locally, you can use any simple web server. For example, if you have Python installed, navigate to your project folder in the terminal and run `python -m http.server`. Then, open your browser to `http://localhost:8000`. Note that API calls may not work locally without a method to provide the API key.
+1.  **Crie sua Chave de API:**
+    *   Acesse o [Google AI Studio](https://aistudio.google.com/app/apikey).
+    *   Clique em **"Create API key"** para gerar uma nova chave.
+    *   **Copie a chave** que foi gerada. Guarde-a em segurança.
+
+2.  **Adicione a Chave no Netlify:**
+    *   No painel do seu site recém-criado no Netlify, vá para **Site configuration** > **Build & deploy** > **Environment**.
+    *   Em **Environment variables**, clique em **"Edit variables"**.
+    *   Adicione uma nova variável:
+        *   **Key**: `API_KEY`
+        *   **Value**: Cole a sua chave de API que você copiou do Google AI Studio.
+    *   Clique em **Save**.
+
+3.  **Ative a Chave:**
+    *   Para que a nova chave seja usada, você precisa reimplantar o site.
+    *   Vá para a aba **Deploys** do seu site.
+    *   No topo, clique no botão **"Trigger deploy"** e selecione **"Deploy site"**.
+
+Após alguns minutos, seu site estará no ar e funcionando com a sua chave de API configurada. Você pode encontrar o URL do seu site no painel do Netlify.
+
+---
+
+## Notas de Desenvolvimento
+
+Este é um aplicativo web estático moderno construído diretamente com React e TypeScript, que roda no navegador sem uma etapa de compilação.
+
+*   **Não é necessário Build:** O projeto usa módulos ES e importa bibliotecas de uma CDN, então você não precisa rodar `npm install` ou `npm run dev`.
+*   **Chave de API:** A aplicação é projetada para obter a chave de API do Gemini de uma variável de ambiente (`process.env.API_KEY`) que é fornecida de forma segura pelo ambiente de hospedagem (como o Netlify). Você não precisa criar um arquivo `.env` ou gerenciar a chave no código.
+*   **Teste Local:** Para testar os arquivos localmente, você pode usar qualquer servidor web simples. Por exemplo, se você tem Python instalado, navegue até a pasta do seu projeto no terminal e execute `python -m http.server`. Em seguida, abra seu navegador em `http://localhost:8000`. Note que as chamadas de API podem não funcionar localmente sem um método para fornecer a chave de API.
