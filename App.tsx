@@ -6,7 +6,7 @@ import ErrorMessage from './components/ErrorMessage';
 import LoginScreen from './components/LoginScreen';
 import BookmarksPanel from './components/BookmarksPanel';
 import BibleNavPanel from './components/BibleNavPanel';
-import { generateResponse, generateSpeech, isApiKeySet } from './services/geminiService';
+import { generateResponse, generateSpeech } from './services/geminiService';
 import { verses } from './data/verses';
 import { suggestionPrompts } from './data/suggestions';
 import type { Message, ChatMode, Bookmark } from './types';
@@ -65,7 +65,6 @@ const stripMarkdownForTTS = (markdown: string): string => {
 
 
 const App: React.FC = () => {
-  const [isApiKeyMissing] = useState<boolean>(!isApiKeySet());
   const [currentUser, setCurrentUser] = useState<string | null>(() => sessionStorage.getItem(USERNAME_KEY));
   const [messages, setMessages] = useState<Message[]>([]);
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
@@ -190,7 +189,7 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem(FONT_SIZE_KEY, fontSize);
   }, [fontSize]);
-
+  
   const handleAudioGenerated = useCallback((messageId: string, audioData: string) => {
     setAudioCache(prev => {
         const newCache = new Map(prev);
@@ -327,7 +326,7 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
 
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
-      setError(`Failed to get response: ${errorMessage}. Please try again.`);
+      setError(`${errorMessage}`);
       // Revert to the state before adding the user's message
       setMessages(historyForAPI);
     } finally {
@@ -400,54 +399,6 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
     setBookmarks(prev => prev.map(b => b.id === bookmarkId ? { ...b, notes } : b));
   }, []);
 
-
-  if (isApiKeyMissing) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
-        <div className="w-full max-w-3xl bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 animate-slide-in-fade">
-          <div className="flex flex-col items-center text-center">
-            <div className="h-16 w-16 text-red-500">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-bold text-red-600 dark:text-red-400 mt-4 mb-2">Erro de Configuração: Chave de API Ausente</h1>
-            <p className="text-lg text-gray-700 dark:text-gray-200 mb-6">
-              Para que o assistente funcione, você precisa adicionar sua Chave de API do Google Gemini.
-            </p>
-          </div>
-          <div className="text-left bg-gray-50 dark:bg-gray-900/50 p-6 rounded-md border border-gray-200 dark:border-gray-700 space-y-4">
-            <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Como Adicionar sua Chave de API (no Netlify)</h2>
-            <ol className="list-decimal list-inside space-y-3 text-gray-600 dark:text-gray-300">
-              <li>
-                Obtenha sua chave de API no Google AI Studio. 
-                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline font-medium"> Clique aqui para criar ou encontrar sua chave.</a>
-              </li>
-              <li>
-                Vá para o painel do seu site no <strong>Netlify</strong>.
-              </li>
-              <li>
-                Navegue até: <code className="bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded text-sm font-mono">Site configuration</code> &rarr; <code className="bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded text-sm font-mono">Build & deploy</code> &rarr; <code className="bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded text-sm font-mono">Environment</code>.
-              </li>
-              <li>
-                Clique em <strong>"Edit variables"</strong> e crie uma nova variável:
-                <ul className="list-disc list-inside ml-6 mt-2 bg-gray-100 dark:bg-gray-800 p-3 rounded">
-                  <li><strong>Key:</strong> <code className="font-mono">API_KEY</code></li>
-                  <li><strong>Value:</strong> Cole a sua chave de API que você copiou do Google AI Studio.</li>
-                </ul>
-              </li>
-              <li>
-                Para que a alteração tenha efeito, você precisa reimplantar o site. Vá para a aba <code className="bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded text-sm font-mono">Deploys</code>, clique em <strong>"Trigger deploy"</strong> e selecione <strong>"Deploy site"</strong>.
-              </li>
-            </ol>
-            <p className="text-sm text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-200 dark:border-gray-600">
-              Sua chave de API é mantida em segredo no servidor e não fica exposta no código do site, garantindo sua segurança.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   if (!currentUser) {
     return <LoginScreen onLogin={handleLogin} onRegister={handleRegister} />;

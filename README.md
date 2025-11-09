@@ -31,27 +31,46 @@ Siga estes passos para publicar e configurar sua própria versão do assistente.
 
 ### Passo 3: Adicione sua Chave de API do Gemini (O Passo Mais Importante!)
 
-Para que o chatbot funcione, ele precisa da sua chave de API do Google Gemini.
+Para que o chatbot funcione, ele precisa da sua chave de API do Google Gemini. Siga este guia detalhado.
 
-1.  **Crie sua Chave de API:**
-    *   Acesse o [Google AI Studio](https://aistudio.google.com/app/apikey).
-    *   Clique em **"Create API key"** para gerar uma nova chave.
-    *   **Copie a chave** que foi gerada. Guarde-a em segurança.
+**Parte A: Criar sua Chave de API**
 
-2.  **Adicione a Chave no Netlify:**
-    *   No painel do seu site recém-criado no Netlify, vá para **Site configuration** > **Build & deploy** > **Environment**.
-    *   Em **Environment variables**, clique em **"Edit variables"**.
-    *   Adicione uma nova variável:
-        *   **Key**: `API_KEY`
-        *   **Value**: Cole a sua chave de API que você copiou do Google AI Studio.
-    *   Clique em **Save**.
+1.  Acesse o [Google AI Studio](https://aistudio.google.com/app/apikey).
+2.  Clique no botão **"Create API key"**.
+3.  Uma nova chave será gerada. **Copie esta chave** clicando no ícone ao lado dela. Guarde-a em um local seguro temporariamente, pois você precisará dela no próximo passo.
 
-3.  **Ative a Chave:**
-    *   Para que a nova chave seja usada, você precisa reimplantar o site.
-    *   Vá para a aba **Deploys** do seu site.
-    *   No topo, clique no botão **"Trigger deploy"** e selecione **"Deploy site"**.
+**Parte B: Adicionar a Chave no Netlify (Passo a Passo Detalhado)**
 
-Após alguns minutos, seu site estará no ar e funcionando com a sua chave de API configurada. Você pode encontrar o URL do seu site no painel do Netlify.
+Aqui está um guia passo a passo, o mais claro possível, para adicionar sua chave no Netlify.
+
+1.  **Abra o seu site no Netlify:**
+    *   Faça login na sua conta Netlify.
+    *   Na lista de sites ("Sites"), clique no nome do seu projeto de chatbot (por exemplo, `meu-chatbot-biblico.netlify.app`).
+
+2.  **Acesse as Configurações do Site:**
+    *   Você verá a página de visão geral do seu site ("Site overview"). No menu de navegação do site (geralmente no topo), clique em **"Site configuration"**.
+
+3.  **Encontre as Variáveis de Ambiente:**
+    *   Após clicar em "Site configuration", um menu aparecerá na lateral esquerda.
+    *   Nesse menu, procure e clique na opção **"Build & deploy"**.
+    *   Um submenu se abrirá. Dentro dele, clique em **"Environment"**.
+    *   O caminho completo que você deve seguir é: **Site configuration -> Build & deploy -> Environment**.
+
+4.  **Adicione a Nova Variável:**
+    *   Na página "Environment", procure a seção chamada **"Environment variables"** (Variáveis de Ambiente).
+    *   Clique no botão **"Edit variables"** (Editar variáveis).
+    *   Você verá campos para adicionar uma nova variável.
+    *   No primeiro campo, chamado **"Key"** (Chave), digite **exatamente** `API_KEY`. (É muito importante que seja tudo em maiúsculas).
+    *   No segundo campo, chamado **"Value"** (Valor), **cole a chave de API** que você copiou do Google AI Studio na Parte A.
+    *   Clique no botão **"Save"** (Salvar) para confirmar.
+
+5.  **Reimplante o Site para Ativar a Chave (Passo Final e Obrigatório):**
+    *   A variável de ambiente só funcionará após uma nova implantação (deploy).
+    *   No menu superior do seu site no Netlify, clique na aba **"Deploys"**.
+    *   No canto superior direito da página de deploys, você verá um botão chamado **"Trigger deploy"**. Clique nele.
+    *   No menu que aparecer, clique em **"Deploy site"**.
+
+Pronto! O Netlify irá reconstruir seu site em um ou dois minutos. Quando o status do novo deploy for "Published" (Publicado), sua chave de API estará funcionando e o chatbot estará pronto para ser usado.
 
 ---
 
