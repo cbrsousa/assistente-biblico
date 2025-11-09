@@ -1,18 +1,33 @@
 import { GoogleGenAI, Modality } from "@google/genai";
 import type { Message, ChatMode, Source } from '../types';
 
-const apiKey = process.env.API_KEY;
 let ai: GoogleGenAI | null = null;
 
-if (apiKey) {
-  try {
-    ai = new GoogleGenAI({ apiKey });
-  } catch (error) {
-    console.error("Falha ao inicializar o GoogleGenAI com a chave de API fornecida:", error);
-  }
-} else {
-    console.warn("A variável de ambiente API_KEY não está definida. O aplicativo não funcionará corretamente.");
-}
+/**
+ * Initializes and retrieves the GoogleGenAI instance.
+ * Uses lazy initialization to ensure the API key is available.
+ * @returns {GoogleGenAI} The initialized GoogleGenAI instance.
+ * @throws {Error} If the API key is not configured or initialization fails.
+ */
+const getAi = (): GoogleGenAI => {
+    if (ai) {
+        return ai;
+    }
+
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+        throw new Error("A chave de API do Gemini não está configurada. O administrador precisa definir a variável de ambiente API_KEY no servidor.");
+    }
+    
+    try {
+        const newAiInstance = new GoogleGenAI({ apiKey });
+        ai = newAiInstance;
+        return ai;
+    } catch (error) {
+        console.error("Falha ao inicializar o GoogleGenAI com a chave de API fornecida:", error);
+        throw new Error("Falha ao inicializar a API do Gemini. Verifique se a chave de API é válida.");
+    }
+};
 
 
 const SYSTEM_INSTRUCTION = `You are Assistente Virtual Bíblico, an advanced biblical studies chatbot. Your purpose is to function like an advanced study Bible, providing deep theological insights, historical context, explanations of original Greek and Hebrew meanings, and cross-references to other scriptures. When asked about the original meaning of a word, you must provide its form in the original language (Greek or Hebrew), its transliteration, its core definition, and a detailed contextual analysis of its use in scripture.
@@ -45,9 +60,7 @@ export const generateResponse = async (
   history: Message[],
   onStreamUpdate?: (chunk: string) => void
 ): Promise<GeminiResponse> => {
-  if (!ai) {
-    throw new Error("A chave de API do Gemini não está configurada. O administrador precisa definir a variável de ambiente API_KEY no servidor.");
-  }
+  const ai = getAi();
 
   const modelConfig = {
     standard: { name: 'gemini-2.5-flash', config: {} },
@@ -161,9 +174,7 @@ export const generateResponse = async (
 };
 
 export const generateSpeech = async (text: string): Promise<string> => {
-  if (!ai) {
-    throw new Error("A chave de API do Gemini não está configurada. O administrador precisa definir a variável de ambiente API_KEY no servidor.");
-  }
+  const ai = getAi();
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-preview-tts",
