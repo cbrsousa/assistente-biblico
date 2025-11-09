@@ -16,7 +16,7 @@ const getAi = (): GoogleGenAI => {
 
     const apiKey = process.env.API_KEY;
     if (!apiKey) {
-        throw new Error("A chave de API do Gemini não está configurada. Por favor, siga as instruções no arquivo README.md para configurar a variável de ambiente API_KEY em seu ambiente de hospedagem.");
+        throw new Error("Erro: A chave da API do Gemini não está configurada. O administrador precisa definir a variável de ambiente API_KEY no servidor.");
     }
     
     try {

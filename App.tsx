@@ -6,7 +6,6 @@ import ErrorMessage from './components/ErrorMessage';
 import LoginScreen from './components/LoginScreen';
 import BookmarksPanel from './components/BookmarksPanel';
 import BibleNavPanel from './components/BibleNavPanel';
-import ApiKeyMissingScreen from './components/ApiKeyMissingScreen';
 import { generateResponse, generateSpeech } from './services/geminiService';
 import { verses } from './data/verses';
 import { suggestionPrompts } from './data/suggestions';
@@ -66,7 +65,6 @@ const stripMarkdownForTTS = (markdown: string): string => {
 
 
 const App: React.FC = () => {
-  const [apiKeyMissing, setApiKeyMissing] = useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<string | null>(() => sessionStorage.getItem(USERNAME_KEY));
   const [messages, setMessages] = useState<Message[]>([]);
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
@@ -96,17 +94,6 @@ const App: React.FC = () => {
   const [breakpoint, setBreakpoint] = useState(() => getBreakpoint(window.innerWidth));
   const isMobile = breakpoint === 'xs';
   const isDesktopLayout = breakpoint !== 'xs' && breakpoint !== 'sm';
-
-  // Check for API Key on initial load
-  useEffect(() => {
-    // The hosting platform (like Netlify) replaces `process.env.API_KEY` with the actual value.
-    // If it's not set, it will be falsy. This check prevents the app from loading
-    // without the required configuration, providing a better user experience.
-    if (!process.env.API_KEY) {
-      console.warn("API_KEY environment variable not set. The app will not function correctly.");
-      setApiKeyMissing(true);
-    }
-  }, []);
 
   // Apply theme
   useEffect(() => {
@@ -412,10 +399,6 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
     setBookmarks(prev => prev.map(b => b.id === bookmarkId ? { ...b, notes } : b));
   }, []);
 
-
-  if (apiKeyMissing) {
-    return <ApiKeyMissingScreen />;
-  }
 
   if (!currentUser) {
     return <LoginScreen onLogin={handleLogin} onRegister={handleRegister} />;
