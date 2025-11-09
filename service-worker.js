@@ -2,10 +2,10 @@ const CACHE_NAME = 'biblical-chatbot-v5';
 // URLs to cache when the service worker is installed.
 // Paths are absolute from the root.
 const URLS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/logo.svg',
-  '/manifest.json',
+  '/assistente-b-blico/',
+  '/assistente-b-blico/index.html',
+  '/assistente-b-blico/logo.svg',
+  '/assistente-b-blico/manifest.json',
   'https://cdn.tailwindcss.com'
 ];
 
