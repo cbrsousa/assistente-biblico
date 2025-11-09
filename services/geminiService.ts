@@ -2,26 +2,28 @@ import { GoogleGenAI, Modality } from "@google/genai";
 import type { Message, ChatMode, Source } from '../types';
 
 let ai: GoogleGenAI | null = null;
+let currentApiKey: string | null = null;
 
 /**
  * Initializes and retrieves the GoogleGenAI instance.
- * Uses lazy initialization to ensure the API key is available.
+ * Re-initializes if the API key changes.
+ * @param {string} apiKey The user-provided Gemini API key.
  * @returns {GoogleGenAI} The initialized GoogleGenAI instance.
- * @throws {Error} If the API key is not configured or initialization fails.
+ * @throws {Error} If the API key is not provided or initialization fails.
  */
-const getAi = (): GoogleGenAI => {
-    if (ai) {
-        return ai;
+const getAi = (apiKey: string): GoogleGenAI => {
+    if (!apiKey) {
+        throw new Error("Erro: A chave da API do Gemini não foi fornecida.");
     }
 
-    const apiKey = process.env.API_KEY;
-    if (!apiKey) {
-        throw new Error("Erro: A chave da API do Gemini não está configurada. O administrador precisa definir a variável de ambiente API_KEY no servidor.");
+    if (ai && currentApiKey === apiKey) {
+        return ai;
     }
     
     try {
         const newAiInstance = new GoogleGenAI({ apiKey });
         ai = newAiInstance;
+        currentApiKey = apiKey;
         return ai;
     } catch (error) {
         console.error("Falha ao inicializar o GoogleGenAI com a chave de API fornecida:", error);
@@ -58,9 +60,10 @@ export const generateResponse = async (
   prompt: string,
   mode: ChatMode,
   history: Message[],
+  apiKey: string,
   onStreamUpdate?: (chunk: string) => void
 ): Promise<GeminiResponse> => {
-  const ai = getAi();
+  const ai = getAi(apiKey);
 
   const modelConfig = {
     standard: { name: 'gemini-2.5-flash', config: {} },
@@ -173,8 +176,8 @@ export const generateResponse = async (
   return { text: fullText, sources: sources.length > 0 ? sources : undefined };
 };
 
-export const generateSpeech = async (text: string): Promise<string> => {
-  const ai = getAi();
+export const generateSpeech = async (text: string, apiKey: string): Promise<string> => {
+  const ai = getAi(apiKey);
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-preview-tts",

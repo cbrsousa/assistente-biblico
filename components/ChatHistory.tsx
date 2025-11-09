@@ -294,6 +294,7 @@ interface ChatHistoryProps {
   bookmarks: Bookmark[];
   onToggleBookmark: (message: Message) => void;
   isMobile: boolean;
+  apiKey: string | null;
   audioCache: Map<string, string>;
   onAudioGenerated: (messageId: string, audioData: string) => void;
 }
@@ -305,7 +306,7 @@ interface SelectionInfo {
 }
 
 
-const ChatHistory: React.FC<ChatHistoryProps> = ({ messages, onSendMessage, fontSize, username, bookmarks, onToggleBookmark, audioCache, onAudioGenerated }) => {
+const ChatHistory: React.FC<ChatHistoryProps> = ({ messages, onSendMessage, fontSize, username, bookmarks, onToggleBookmark, apiKey, audioCache, onAudioGenerated }) => {
   const endOfMessagesRef = useRef<HTMLDivElement | null>(null);
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
   const [selectionInfo, setSelectionInfo] = useState<SelectionInfo | null>(null);
@@ -420,6 +421,12 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ messages, onSendMessage, font
 
   const handleAudioControl = async (message: Message) => {
     const { id, text } = message;
+
+    if (!apiKey) {
+      alert("A chave de API não está configurada. Não é possível gerar áudio.");
+      return;
+    }
+
     const isSameMessage = audioState.messageId === id;
     const { status } = audioState;
 
@@ -447,6 +454,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ messages, onSendMessage, font
     await stopAndCleanupAudio();
     
     try {
+      setAudioState({ messageId: id, status: 'generating' });
       const cachedAudio = audioCache.get(id);
       let base64Audio: string;
 
@@ -455,9 +463,8 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ messages, onSendMessage, font
         base64Audio = cachedAudio;
       } else {
         // Not in cache, so we need to generate it.
-        setAudioState({ messageId: id, status: 'generating' });
         const textToSpeak = stripMarkdownForTTS(text);
-        base64Audio = await generateSpeech(textToSpeak);
+        base64Audio = await generateSpeech(textToSpeak, apiKey);
         // Once generated, update the cache via the callback to App.tsx
         onAudioGenerated(id, base64Audio);
       }
@@ -470,6 +477,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ messages, onSendMessage, font
 
       // Reset progress and start playing from the beginning
       audioProgressRef.current = { pausedAt: 0, playbackStartedAt: 0 };
+      setAudioState(prev => ({ ...prev, messageId: id, status: 'idle' })); // Set back to idle before playing
       playAudio(0);
       
     } catch (error) {

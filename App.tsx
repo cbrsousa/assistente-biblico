@@ -4,6 +4,7 @@ import ChatHistory from './components/ChatHistory';
 import ChatInput from './components/ChatInput';
 import ErrorMessage from './components/ErrorMessage';
 import LoginScreen from './components/LoginScreen';
+import ApiKeyScreen from './components/ApiKeyScreen';
 import BookmarksPanel from './components/BookmarksPanel';
 import BibleNavPanel from './components/BibleNavPanel';
 import { generateResponse, generateSpeech } from './services/geminiService';
@@ -12,6 +13,7 @@ import { suggestionPrompts } from './data/suggestions';
 import type { Message, ChatMode, Bookmark } from './types';
 
 // Use a session storage key for login status to not persist across browser sessions
+const API_KEY_STORAGE = 'virtual-assistant-gemini-api-key';
 const USERNAME_KEY = 'virtual-assistant-username-session'; 
 const USERS_KEY = 'virtual-assistant-users'; // For storing user credentials
 const getChatHistoryKey = (username: string) => `virtual-assistant-chat-history-${username}`;
@@ -65,6 +67,8 @@ const stripMarkdownForTTS = (markdown: string): string => {
 
 
 const App: React.FC = () => {
+  const [apiKey, setApiKey] = useState<string | null>(() => localStorage.getItem(API_KEY_STORAGE));
+  const [apiKeyError, setApiKeyError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<string | null>(() => sessionStorage.getItem(USERNAME_KEY));
   const [messages, setMessages] = useState<Message[]>([]);
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
@@ -198,8 +202,20 @@ const App: React.FC = () => {
     });
   }, []);
 
+  const handleApiKeySave = (key: string) => {
+    localStorage.setItem(API_KEY_STORAGE, key);
+    setApiKey(key);
+    setApiKeyError(null);
+  };
+
+  const handleApiKeyError = useCallback(() => {
+      localStorage.removeItem(API_KEY_STORAGE);
+      setApiKey(null);
+      setApiKeyError("Sua chave de API parece ser inválida ou não tem as permissões necessárias. Por favor, insira uma nova chave.");
+  }, []);
+
   const handleSendMessage = useCallback(async (prompt: string) => {
-    if (!prompt.trim() || isLoading) return;
+    if (!prompt.trim() || isLoading || !apiKey) return;
     updateSuggestions();
 
     // Stop any ongoing speech synthesis
@@ -288,6 +304,7 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
           finalPrompt, 
           mode, 
           historyForAPI, 
+          apiKey,
           (chunk) => {
               setMessages(prev => prev.map(msg => 
                   msg.id === botMessageId ? { ...msg, text: msg.text + chunk } : msg
@@ -312,8 +329,8 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
         ));
 
         // Pre-generate audio in the background for faster playback
-        if (finalBotResponse.text) {
-          generateSpeech(stripMarkdownForTTS(finalBotResponse.text))
+        if (finalBotResponse.text && apiKey) {
+          generateSpeech(stripMarkdownForTTS(finalBotResponse.text), apiKey)
             .then(base64Audio => {
               handleAudioGenerated(botMessageId, base64Audio);
             })
@@ -326,13 +343,22 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
 
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
-      setError(`${errorMessage}`);
+      if (e instanceof Error && (
+            errorMessage.toLowerCase().includes('api key not valid') ||
+            errorMessage.toLowerCase().includes('permission denied') ||
+            errorMessage.toLowerCase().includes('api key is invalid')
+         )) {
+        setError("Sua chave de API parece ser inválida. Por favor, insira uma chave de API válida para continuar.");
+        handleApiKeyError();
+      } else {
+        setError(`${errorMessage}`);
+      }
       // Revert to the state before adding the user's message
       setMessages(historyForAPI);
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, messages, mode, updateSuggestions, isDesktopLayout, handleAudioGenerated]);
+  }, [isLoading, messages, mode, updateSuggestions, isDesktopLayout, handleAudioGenerated, apiKey, handleApiKeyError]);
 
   const handleRegister = async (username: string, password: string): Promise<{success: boolean, message: string}> => {
     // In a real app, this would be an API call. For this demo, we use localStorage.
@@ -400,6 +426,10 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
   }, []);
 
 
+  if (!apiKey) {
+    return <ApiKeyScreen onSave={handleApiKeySave} initialError={apiKeyError} />;
+  }
+
   if (!currentUser) {
     return <LoginScreen onLogin={handleLogin} onRegister={handleRegister} />;
   }
@@ -449,6 +479,7 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
               bookmarks={bookmarks}
               onToggleBookmark={handleToggleBookmark}
               isMobile={isMobile}
+              apiKey={apiKey}
               audioCache={audioCache}
               onAudioGenerated={handleAudioGenerated}
             />
