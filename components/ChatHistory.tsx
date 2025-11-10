@@ -294,7 +294,6 @@ interface ChatHistoryProps {
   bookmarks: Bookmark[];
   onToggleBookmark: (message: Message) => void;
   isMobile: boolean;
-  apiKey: string | null;
   audioCache: Map<string, string>;
   onAudioGenerated: (messageId: string, audioData: string) => void;
 }
@@ -306,7 +305,7 @@ interface SelectionInfo {
 }
 
 
-const ChatHistory: React.FC<ChatHistoryProps> = ({ messages, onSendMessage, fontSize, username, bookmarks, onToggleBookmark, apiKey, audioCache, onAudioGenerated }) => {
+const ChatHistory: React.FC<ChatHistoryProps> = ({ messages, onSendMessage, fontSize, username, bookmarks, onToggleBookmark, audioCache, onAudioGenerated }) => {
   const endOfMessagesRef = useRef<HTMLDivElement | null>(null);
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
   const [selectionInfo, setSelectionInfo] = useState<SelectionInfo | null>(null);
@@ -422,11 +421,6 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ messages, onSendMessage, font
   const handleAudioControl = async (message: Message) => {
     const { id, text } = message;
 
-    if (!apiKey) {
-      alert("A chave de API não está configurada. Não é possível gerar áudio.");
-      return;
-    }
-
     const isSameMessage = audioState.messageId === id;
     const { status } = audioState;
 
@@ -464,7 +458,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ messages, onSendMessage, font
       } else {
         // Not in cache, so we need to generate it.
         const textToSpeak = stripMarkdownForTTS(text);
-        base64Audio = await generateSpeech(textToSpeak, apiKey);
+        base64Audio = await generateSpeech(textToSpeak);
         // Once generated, update the cache via the callback to App.tsx
         onAudioGenerated(id, base64Audio);
       }
