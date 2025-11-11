@@ -244,26 +244,6 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onSendMessage, f
                 </button>
             </div>
         )}
-        {message.imageUrl && (
-          <div className="relative mt-2 group/image">
-            <img
-              src={message.imageUrl}
-              alt="Imagem gerada pela IA"
-              className="rounded-lg max-w-full h-auto"
-            />
-            <a
-              href={message.imageUrl}
-              download="imagem-gerada-ia.png"
-              className="absolute top-2 right-2 p-1.5 bg-black bg-opacity-50 rounded-full text-white hover:bg-opacity-75 transition-opacity opacity-0 group-hover/image:opacity-100 focus:opacity-100"
-              title="Baixar imagem"
-              aria-label="Baixar imagem"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-            </a>
-          </div>
-        )}
         <div className={`${fontSize} whitespace-pre-wrap leading-relaxed ${isModel ? 'pr-20' : ''}`}>
           {isModel ? <FormattedMessage text={message.text} onSendMessage={onSendMessage} /> : message.text}
         </div>

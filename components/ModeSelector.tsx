@@ -12,7 +12,6 @@ const modes: { id: ChatMode; name: string; description: string }[] = [
   { id: 'standard', name: 'Padrão', description: 'Respostas equilibradas.' },
   { id: 'deepThought', name: 'Pensamento Profundo', description: 'Para consultas complexas.' },
   { id: 'webSearch', name: 'Pesquisa Web', description: 'Baseado em resultados da web.' },
-  { id: 'imageGeneration', name: 'Gerar Imagem', description: 'Cria uma imagem a partir de um texto.' },
 ];
 
 const ModeSelector: React.FC<ModeSelectorProps> = ({ currentMode, onModeChange, isMobile }) => {

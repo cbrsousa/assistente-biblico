@@ -54,7 +54,6 @@ Your responses must reflect these principles. You must act as a guide to underst
 interface GeminiResponse {
   text: string;
   sources?: Source[];
-  imageUrl?: string;
 }
 
 export const generateResponse = async (
@@ -80,10 +79,6 @@ export const generateResponse = async (
     webSearch: { 
       name: 'gemini-2.5-flash', 
       config: { tools: [{ googleSearch: {} }] }
-    },
-    imageGeneration: {
-        name: 'gemini-2.5-flash-image',
-        config: { responseModalities: [Modality.IMAGE] }
     }
   };
 
@@ -93,38 +88,6 @@ export const generateResponse = async (
     ...config,
     systemInstruction: SYSTEM_INSTRUCTION,
   };
-
-  if (mode === 'imageGeneration') {
-    const response = await ai.models.generateContent({
-      model: modelName,
-      contents: { parts: [{ text: prompt }] },
-      config: generationConfig,
-    });
-
-    let text = '';
-    let imageUrl = '';
-
-    const parts = response.candidates?.[0]?.content?.parts;
-
-    if (parts) {
-      for (const part of parts) {
-        if (part.text) {
-          text += part.text;
-        } else if (part.inlineData) {
-          imageUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-        }
-      }
-    }
-
-    // If after checking all parts we still don't have an image, the request failed.
-    if (!imageUrl) {
-      console.error("Image generation failed or did not return an image. API Response:", JSON.stringify(response, null, 2));
-      throw new Error("Não foi possível gerar a imagem. A sua solicitação pode ter sido bloqueada por motivos de segurança ou a resposta não continha uma imagem. Por favor, tente uma descrição diferente.");
-    }
-
-    return { text: text || "Aqui está a imagem que você pediu.", imageUrl };
-  }
-
 
   const contents = [...history.map(msg => ({
     role: msg.role,

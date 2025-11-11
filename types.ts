@@ -1,7 +1,7 @@
 
 export type Role = 'user' | 'model';
 
-export type ChatMode = 'standard' | 'fast' | 'deepThought' | 'webSearch' | 'imageGeneration';
+export type ChatMode = 'standard' | 'fast' | 'deepThought' | 'webSearch';
 
 export interface Source {
   title: string;
@@ -13,7 +13,6 @@ export interface Message {
   role: Role;
   text: string;
   sources?: Source[];
-  imageUrl?: string;
 }
 
 export interface Bookmark {

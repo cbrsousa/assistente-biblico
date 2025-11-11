@@ -307,9 +307,7 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
     try {
       const botMessageId = crypto.randomUUID();
       // Add an empty message to start streaming into.
-      if (mode !== 'imageGeneration') {
-        setMessages(prev => [...prev, { id: botMessageId, role: 'model', text: '' }]);
-      }
+      setMessages(prev => [...prev, { id: botMessageId, role: 'model', text: '' }]);
       
       // Generate response
       const finalBotResponse = await generateResponse(
@@ -323,35 +321,24 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
           }
       );
       
-      if (mode === 'imageGeneration') {
-          const botMessage: Message = {
-            id: botMessageId,
-            role: 'model',
-            text: finalBotResponse.text,
-            imageUrl: finalBotResponse.imageUrl,
-          };
-          setMessages(prev => [...prev, botMessage]);
-      } else {
-        // After stream is complete, update the message with the final data (including sources)
-        setMessages(prev => prev.map(msg =>
-            msg.id === botMessageId 
-            ? { ...msg, text: finalBotResponse.text, sources: finalBotResponse.sources } 
-            : msg
-        ));
+      // After stream is complete, update the message with the final data (including sources)
+      setMessages(prev => prev.map(msg =>
+          msg.id === botMessageId 
+          ? { ...msg, text: finalBotResponse.text, sources: finalBotResponse.sources } 
+          : msg
+      ));
 
-        // Pre-generate audio in the background for faster playback
-        if (finalBotResponse.text) {
-          generateSpeech(stripMarkdownForTTS(finalBotResponse.text))
-            .then(base64Audio => {
-              handleAudioGenerated(botMessageId, base64Audio);
-            })
-            .catch(err => {
-              // Fail silently, user can still generate manually.
-              console.error("Background audio generation failed:", err);
-            });
-        }
+      // Pre-generate audio in the background for faster playback
+      if (finalBotResponse.text) {
+        generateSpeech(stripMarkdownForTTS(finalBotResponse.text))
+          .then(base64Audio => {
+            handleAudioGenerated(botMessageId, base64Audio);
+          })
+          .catch(err => {
+            // Fail silently, user can still generate manually.
+            console.error("Background audio generation failed:", err);
+          });
       }
-
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
       if (e instanceof Error && (
