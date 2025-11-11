@@ -3,16 +3,15 @@ import type { FontSize } from '../App';
 
 interface WelcomeMessageProps {
   fontSize: FontSize;
-  username: string;
   onSendMessage: (prompt: string) => void;
 }
 
-const WelcomeMessage: React.FC<WelcomeMessageProps> = ({ fontSize, username, onSendMessage }) => {
+const WelcomeMessage: React.FC<WelcomeMessageProps> = ({ fontSize, onSendMessage }) => {
   return (
     <div className="flex justify-start mb-4 animate-fade-in-up">
       <div className="w-full max-w-[85%] sm:max-w-xl lg:max-w-2xl px-4 py-3 rounded-lg shadow-md bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100">
         <p className={`${fontSize} leading-relaxed`}>
-          Graça e paz, {username}! Eu sou o Assistente Virtual Bíblico, seu guia bíblico. Como posso ajudá-lo em seus estudos hoje?
+          Graça e paz! Eu sou o Assistente Virtual Bíblico, seu guia bíblico. Como posso ajudá-lo em seus estudos hoje?
         </p>
         <p className={`${fontSize} mt-2 leading-relaxed`}>
           Use o painel de navegação à esquerda para explorar os livros da Bíblia ou simplesmente me faça uma pergunta abaixo.

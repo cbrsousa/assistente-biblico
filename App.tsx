@@ -3,7 +3,6 @@ import Header from './components/Header';
 import ChatHistory from './components/ChatHistory';
 import ChatInput from './components/ChatInput';
 import ErrorMessage from './components/ErrorMessage';
-import LoginScreen from './components/LoginScreen';
 import BookmarksPanel from './components/BookmarksPanel';
 import BibleNavPanel from './components/BibleNavPanel';
 import { generateResponse, generateSpeech } from './services/geminiService';
@@ -11,11 +10,9 @@ import { verses } from './data/verses';
 import { suggestionPrompts } from './data/suggestions';
 import type { Message, ChatMode, Bookmark } from './types';
 
-// Use a session storage key for login status to not persist across browser sessions
-const USERNAME_KEY = 'virtual-assistant-username-session'; 
-const USERS_KEY = 'virtual-assistant-users'; // For storing user credentials
-const getChatHistoryKey = (username: string) => `virtual-assistant-chat-history-${username}`;
-const getBookmarksKey = (username: string) => `virtual-assistant-bookmarks-${username}`;
+// Simplified localStorage keys for a single, public experience
+const CHAT_HISTORY_KEY = 'virtual-assistant-chat-history';
+const BOOKMARKS_KEY = 'virtual-assistant-bookmarks';
 const THEME_KEY = 'virtual-assistant-theme';
 const FONT_SIZE_KEY = 'virtual-assistant-font-size';
 
@@ -65,7 +62,6 @@ const stripMarkdownForTTS = (markdown: string): string => {
 
 
 const App: React.FC = () => {
-  const [currentUser, setCurrentUser] = useState<string | null>(() => sessionStorage.getItem(USERNAME_KEY));
   const [messages, setMessages] = useState<Message[]>([]);
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [audioCache, setAudioCache] = useState<Map<string, string>>(new Map());
@@ -134,57 +130,49 @@ const App: React.FC = () => {
     setSuggestions(shuffled.slice(0, 4));
   }, []);
 
-  // Load data when currentUser changes
+  // Load data on initial render
   useEffect(() => {
-    if (currentUser) {
-      updateSuggestions(); // Set initial suggestions
-      try {
-        const chatHistoryKey = getChatHistoryKey(currentUser);
-        const savedMessages = localStorage.getItem(chatHistoryKey);
-        setMessages(savedMessages ? JSON.parse(savedMessages) : []);
-      } catch (error) {
-        console.error("Failed to load messages from localStorage", error);
-        setMessages([]);
-      }
-      
-      try {
-        const bookmarksKey = getBookmarksKey(currentUser);
-        const savedBookmarks = localStorage.getItem(bookmarksKey);
-        setBookmarks(savedBookmarks ? JSON.parse(savedBookmarks) : []);
-      } catch (error) {
-        console.error("Failed to load bookmarks from localStorage", error);
-        setBookmarks([]);
-      }
+    updateSuggestions(); // Set initial suggestions
+    try {
+      const savedMessages = localStorage.getItem(CHAT_HISTORY_KEY);
+      setMessages(savedMessages ? JSON.parse(savedMessages) : []);
+    } catch (error) {
+      console.error("Failed to load messages from localStorage", error);
+      setMessages([]);
     }
-  }, [currentUser, updateSuggestions]);
+    
+    try {
+      const savedBookmarks = localStorage.getItem(BOOKMARKS_KEY);
+      setBookmarks(savedBookmarks ? JSON.parse(savedBookmarks) : []);
+    } catch (error) {
+      console.error("Failed to load bookmarks from localStorage", error);
+      setBookmarks([]);
+    }
+  }, [updateSuggestions]);
 
 
   // Save messages when they change
   useEffect(() => {
-    if (currentUser && messages.length > 0) {
+    if (messages.length > 0) {
       try {
-        const chatHistoryKey = getChatHistoryKey(currentUser);
-        localStorage.setItem(chatHistoryKey, JSON.stringify(messages));
+        localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(messages));
       } catch (error) {
         console.error("Failed to save messages to localStorage", error);
       }
-    } else if (currentUser && messages.length === 0) {
+    } else {
         // Also handle clearing history
-        localStorage.removeItem(getChatHistoryKey(currentUser));
+        localStorage.removeItem(CHAT_HISTORY_KEY);
     }
-  }, [messages, currentUser]);
+  }, [messages]);
 
   // Save bookmarks when they change
   useEffect(() => {
-    if (currentUser) {
-      try {
-        const bookmarksKey = getBookmarksKey(currentUser);
-        localStorage.setItem(bookmarksKey, JSON.stringify(bookmarks));
-      } catch (error) {
-        console.error("Failed to save bookmarks to localStorage", error);
-      }
+    try {
+      localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks));
+    } catch (error) {
+      console.error("Failed to save bookmarks to localStorage", error);
     }
-  }, [bookmarks, currentUser]);
+  }, [bookmarks]);
 
   useEffect(() => {
     localStorage.setItem(FONT_SIZE_KEY, fontSize);
@@ -341,52 +329,6 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
     }
   }, [isLoading, messages, mode, updateSuggestions, isDesktopLayout, handleAudioGenerated]);
 
-  const handleRegister = async (username: string, password: string): Promise<{success: boolean, message: string}> => {
-    // In a real app, this would be an API call. For this demo, we use localStorage.
-    // This is NOT secure and is for demonstration purposes only.
-    try {
-      const storedUsers = localStorage.getItem(USERS_KEY);
-      const users = storedUsers ? JSON.parse(storedUsers) : [];
-      
-      if (users.some((user: any) => user.username.toLowerCase() === username.toLowerCase())) {
-        return { success: false, message: 'Username already exists. Please choose another.' };
-      }
-
-      users.push({ username, password }); // Storing passwords in plaintext is insecure.
-      localStorage.setItem(USERS_KEY, JSON.stringify(users));
-      return { success: true, message: 'Registration successful! Please log in.' };
-    } catch (e) {
-      console.error("Registration failed", e);
-      return { success: false, message: 'An error occurred during registration. Please try again.' };
-    }
-  };
-
-  const handleLogin = (username: string, password: string): boolean => {
-    try {
-      const storedUsers = localStorage.getItem(USERS_KEY);
-      if (!storedUsers) return false;
-
-      const users = JSON.parse(storedUsers);
-      const user = users.find((u: any) => u.username === username && u.password === password);
-
-      if (user) {
-        sessionStorage.setItem(USERNAME_KEY, username);
-        setCurrentUser(username);
-        // Data for the new user will be loaded by the useEffect hook
-        return true;
-      }
-      return false;
-    } catch(e) {
-      console.error("Login failed", e);
-      return false;
-    }
-  };
-  
-  const handleLogout = () => {
-    sessionStorage.removeItem(USERNAME_KEY);
-    setCurrentUser(null);
-  };
-
   const handleToggleBookmark = useCallback((message: Message) => {
     setBookmarks(prev => {
       const isBookmarked = prev.some(b => b.id === message.id);
@@ -405,11 +347,6 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
   const handleUpdateBookmarkNote = useCallback((bookmarkId: string, notes: string) => {
     setBookmarks(prev => prev.map(b => b.id === bookmarkId ? { ...b, notes } : b));
   }, []);
-
-
-  if (!currentUser) {
-    return <LoginScreen onLogin={handleLogin} onRegister={handleRegister} />;
-  }
 
   return (
     <div className="flex h-screen font-sans bg-gray-100 dark:bg-gray-900 overflow-hidden">
@@ -442,7 +379,6 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
           onThemeChange={setTheme}
           onToggleNav={() => setIsNavOpen(!isNavOpen)}
           onToggleBookmarks={() => setIsBookmarksOpen(!isBookmarksOpen)}
-          onLogout={handleLogout}
           isMobile={isMobile}
           isDesktopLayout={isDesktopLayout}
         />
@@ -452,7 +388,6 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
               messages={messages} 
               onSendMessage={handleSendMessage} 
               fontSize={fontSize}
-              username={currentUser}
               bookmarks={bookmarks}
               onToggleBookmark={handleToggleBookmark}
               isMobile={isMobile}

@@ -13,7 +13,6 @@ interface HeaderProps {
   onThemeChange: (theme: Theme) => void;
   onToggleNav: () => void;
   onToggleBookmarks: () => void;
-  onLogout: () => void;
   isMobile: boolean;
   isDesktopLayout: boolean;
 }
@@ -27,7 +26,6 @@ const Header: React.FC<HeaderProps> = ({
   onThemeChange,
   onToggleNav,
   onToggleBookmarks,
-  onLogout,
   isMobile,
   isDesktopLayout
 }) => {
@@ -135,14 +133,6 @@ const Header: React.FC<HeaderProps> = ({
                     </div>
                  </>
               )}
-
-              <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
-              <button
-                onClick={onLogout}
-                className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none"
-              >
-                Sair (Logout)
-              </button>
             </div>
           )}
         </div>

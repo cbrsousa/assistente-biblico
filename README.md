@@ -4,59 +4,61 @@ Este é um chatbot inteligente com a tecnologia Gemini, projetado para fornecer 
 
 ## Como Usar
 
-Este aplicativo é executado inteiramente no seu navegador. Para funcionar, ele precisa de uma chave de API do Google Gemini, que você pode obter gratuitamente.
+O assistente está pronto para ser usado assim que for publicado. Basta abrir o link no seu navegador e começar a interagir. Você pode:
 
-1.  **Obtenha uma Chave de API do Gemini:**
-    *   Acesse o [Google AI Studio](https://aistudio.google.com/app/apikey).
-    *   Clique em **"Create API key"** para gerar uma nova chave.
-    *   Copie a chave gerada.
+*   Fazer perguntas sobre a Bíblia.
+*   Pedir resumos de livros ou explicações de passagens.
+*   Explorar os livros e capítulos da Bíblia usando o painel de navegação.
+*   Salvar respostas importantes como favoritos.
 
-2.  **Inicie o Aplicativo:**
-    *   Ao abrir o assistente pela primeira vez, ele solicitará sua chave de API.
-    *   Cole a chave que você copiou no campo indicado.
-    *   Sua chave é armazenada de forma segura apenas no seu navegador (`localStorage`) e nunca é enviada para nenhum servidor.
+## Como Publicar (Guia Simplificado para Vercel)
 
-Agora você está pronto para usar o assistente!
+Hospedar sua própria versão deste assistente é **gratuito** e leva apenas alguns minutos. Siga estes 3 passos simples.
+
+### Pré-requisito: Obter a Chave de API do Google
+
+Antes de tudo, você precisa da "chave" que permite que seu site converse com a inteligência artificial do Google.
+
+1.  Acesse o **[Google AI Studio](https://aistudio.google.com/app/apikey)**.
+2.  Clique em **"Create API key"** para gerar uma nova chave.
+3.  **Copie a chave gerada.** É uma sequência longa de letras e números. Guarde-a em um local seguro, pois você a usará no Passo 3.
 
 ---
 
-## Como Publicar sua Própria Versão
+### Passo 1: Copiar o Projeto para sua Conta do GitHub
 
-Você pode hospedar sua própria versão deste assistente gratuitamente em serviços como GitHub Pages ou Netlify.
-
-### Opção 1: Publicar no GitHub Pages (Recomendado e Simples)
+Para publicar o site, você precisa ter sua própria cópia do código.
 
 1.  **Faça um "Fork" do Repositório:**
-    *   Clique no botão "Fork" no canto superior direito desta página para criar uma cópia do projeto na sua conta do GitHub.
+    *   Clique no botão **"Fork"** no canto superior direito desta página. Isso criará uma cópia exata do projeto na sua conta do GitHub.
 
-2.  **Ative o GitHub Pages:**
-    *   No seu repositório "forkado", vá para **Settings** > **Pages**.
-    *   Na seção "Build and deployment", em "Source", selecione **"Deploy from a branch"**.
-    *   Em "Branch", selecione `main`, mantenha a pasta como `/ (root)` e clique em **Save**.
+---
 
-3.  **Aguarde a Publicação:**
-    *   O GitHub levará alguns minutos para publicar seu site. A URL do seu site (algo como `https://SEU-USUARIO.github.io/assistente-biblico/`) aparecerá na mesma página.
+### Passo 2: Publicar o Site com a Vercel
 
-4.  **Use o Aplicativo:**
-    *   Visite a URL fornecida. O aplicativo solicitará sua chave de API do Gemini na primeira vez que você o usar, conforme descrito na seção "Como Usar".
+Agora, vamos usar a Vercel para colocar seu site no ar e configurar sua chave secreta.
 
-### Opção 2: Publicar no Netlify
+1.  **Crie uma Conta na Vercel:**
+    *   Acesse **[vercel.com](https://vercel.com/)** e clique em "Sign Up". A maneira mais fácil é se inscrever usando sua conta do **GitHub**.
 
-1.  **Siga o Passo 1** da seção do GitHub Pages (faça um "Fork" do repositório).
+2.  **Importe seu Projeto:**
+    *   No painel da Vercel, clique em **"Add New..."** e selecione **"Project"**.
+    *   Selecione o repositório `assistente-biblico` que você acabou de copiar ("forkar") para o seu GitHub e clique em **"Import"**.
 
-2.  **Crie uma conta** ou faça login no [Netlify](https://www.netlify.com/).
+3.  **Configure a Chave Secreta (A Parte Mais Importante):**
+    *   A Vercel vai te mostrar as configurações do projeto. Você não precisa mudar nada, ela já entende tudo sozinha.
+    *   Apenas abra a seção **"Environment Variables"** (Variáveis de Ambiente).
+    *   Adicione uma nova variável com os seguintes dados:
+        *   **Name:** `API_KEY`
+        *   **Value:** Cole aqui a **chave de API do Google Gemini** que você copiou no pré-requisito.
+    *   Clique no botão **"Add"** para salvar a variável.
 
-3.  No seu painel, clique em **"Add new site"** > **"Import an existing project"**.
+    
 
-4.  **Conecte-se ao GitHub** e selecione o repositório do seu chatbot.
+4.  **Publique o Site:**
+    *   Clique no botão **"Deploy"**.
 
-5.  **Configurações de implantação**:
-    *   **Deixe todos os campos em branco** (`Build command` e `Publish directory`). O Netlify detectará que é um site estático.
-
-6.  Clique em **"Deploy site"**.
-
-7.  **Use o Aplicativo:**
-    *   Após a publicação, visite a URL do seu site no Netlify. O aplicativo solicitará sua chave de API do Gemini.
+Aguarde um ou dois minutos e pronto! A Vercel te dará um link público e seu Assistente Bíblico estará online e funcionando para qualquer pessoa que você compartilhar.
 
 ---
 
@@ -64,6 +66,5 @@ Você pode hospedar sua própria versão deste assistente gratuitamente em servi
 
 Este é um aplicativo web estático moderno construído diretamente com React e TypeScript, que roda no navegador sem uma etapa de compilação.
 
-*   **Não é necessário Build:** O projeto usa módulos ES e importa bibliotecas de uma CDN, então você não precisa rodar `npm install` ou `npm run dev`.
-*   **Chave de API Gerenciada pelo Usuário:** A aplicação é projetada para que cada usuário forneça sua própria chave de API do Gemini, que é armazenada localmente no navegador.
-*   **Teste Local:** Para testar os arquivos localmente, use qualquer servidor web simples. Por exemplo, com Python instalado, navegue até a pasta do projeto no terminal e execute `python -m http.server`. Abra seu navegador em `http://localhost:8000`.
+*   **Não é necessário Build:** O projeto usa módulos ES e importa bibliotecas de uma CDN.
+*   **Chave de API:** A chave de API do Gemini é fornecida através de uma variável de ambiente (`API_KEY`) no serviço de hospedagem, garantindo que ela permaneça segura e não seja exposta no código do navegador.

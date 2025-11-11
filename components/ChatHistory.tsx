@@ -290,7 +290,6 @@ interface ChatHistoryProps {
   messages: Message[];
   onSendMessage: (prompt: string) => void;
   fontSize: FontSize;
-  username: string;
   bookmarks: Bookmark[];
   onToggleBookmark: (message: Message) => void;
   isMobile: boolean;
@@ -305,7 +304,7 @@ interface SelectionInfo {
 }
 
 
-const ChatHistory: React.FC<ChatHistoryProps> = ({ messages, onSendMessage, fontSize, username, bookmarks, onToggleBookmark, audioCache, onAudioGenerated }) => {
+const ChatHistory: React.FC<ChatHistoryProps> = ({ messages, onSendMessage, fontSize, bookmarks, onToggleBookmark, audioCache, onAudioGenerated }) => {
   const endOfMessagesRef = useRef<HTMLDivElement | null>(null);
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
   const [selectionInfo, setSelectionInfo] = useState<SelectionInfo | null>(null);
@@ -509,7 +508,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ messages, onSendMessage, font
         />
       )}
       <div className="max-w-4xl mx-auto">
-        {messages.length === 0 && <WelcomeMessage fontSize={fontSize} username={username} onSendMessage={onSendMessage} />}
+        {messages.length === 0 && <WelcomeMessage fontSize={fontSize} onSendMessage={onSendMessage} />}
         {messages.map((msg) => (
           <MessageBubble 
             key={msg.id} 

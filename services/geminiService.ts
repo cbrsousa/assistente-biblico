@@ -1,13 +1,31 @@
 import { GoogleGenAI, Modality } from "@google/genai";
 import type { Message, ChatMode, Source } from '../types';
 
-// A chave de API agora é esperada nas variáveis de ambiente.
-if (!process.env.API_KEY) {
-    // Este erro será exibido no console se a chave não estiver configurada,
-    // evitando que o aplicativo quebre silenciosamente.
-    throw new Error("A chave da API do Gemini não foi configurada no ambiente.");
+// Initialize the Google AI client.
+// It will be null if the API key is missing, preventing a crash on startup.
+let ai: GoogleGenAI | null = null;
+if (process.env.API_KEY) {
+    try {
+        ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    } catch (e) {
+        console.error("Failed to initialize GoogleGenAI. Check if the API key is valid.", e);
+    }
+} else {
+    // This warning is for the developer deploying the application.
+    console.warn("API_KEY environment variable not found. The application will not be able to connect to the Gemini API.");
 }
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+/**
+ * A helper function to get the initialized AI instance or throw a user-friendly error.
+ * This is called before any API request is made.
+ * @returns The initialized GoogleGenAI instance.
+ */
+const getAiInstance = (): GoogleGenAI => {
+    if (!ai) {
+        throw new Error("O Assistente Virtual não está configurado corretamente. Fale com o administrador do site. (Erro: Chave de API ausente ou inválida)");
+    }
+    return ai;
+}
 
 
 const SYSTEM_INSTRUCTION = `You are Assistente Virtual Bíblico, an advanced biblical studies chatbot. Your purpose is to function like an advanced study Bible, providing deep theological insights, historical context, explanations of original Greek and Hebrew meanings, and cross-references to other scriptures. When asked about the original meaning of a word, you must provide its form in the original language (Greek or Hebrew), its transliteration, its core definition, and a detailed contextual analysis of its use in scripture.
@@ -40,6 +58,7 @@ export const generateResponse = async (
   history: Message[],
   onStreamUpdate?: (chunk: string) => void
 ): Promise<GeminiResponse> => {
+  const ai = getAiInstance();
 
   const modelConfig = {
     standard: { name: 'gemini-2.5-flash', config: {} },
@@ -153,6 +172,7 @@ export const generateResponse = async (
 };
 
 export const generateSpeech = async (text: string): Promise<string> => {
+  const ai = getAiInstance();
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-preview-tts",
