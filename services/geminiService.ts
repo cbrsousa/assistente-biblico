@@ -1,19 +1,24 @@
 import { GoogleGenAI, Modality } from "@google/genai";
 import type { Message, ChatMode, Source } from '../types';
 
-// Initialize the Google AI client.
-// It will be null if the API key is missing, preventing a crash on startup.
 let ai: GoogleGenAI | null = null;
-if (process.env.API_KEY) {
-    try {
-        ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    } catch (e) {
-        console.error("Failed to initialize GoogleGenAI. Check if the API key is valid.", e);
-    }
-} else {
-    // This warning is for the developer deploying the application.
-    console.warn("API_KEY environment variable not found. The application will not be able to connect to the Gemini API.");
-}
+
+export const initializeAi = (apiKey: string): boolean => {
+  if (!apiKey) {
+    console.error("API key is missing for initialization.");
+    return false;
+  }
+  try {
+    // Re-initializing is fine and necessary if the key changes.
+    ai = new GoogleGenAI({ apiKey });
+    return true;
+  } catch (e) {
+    console.error("Failed to initialize GoogleGenAI. Check if the API key is valid.", e);
+    ai = null;
+    return false;
+  }
+};
+
 
 /**
  * A helper function to get the initialized AI instance or throw a user-friendly error.
@@ -22,7 +27,7 @@ if (process.env.API_KEY) {
  */
 const getAiInstance = (): GoogleGenAI => {
     if (!ai) {
-        throw new Error("O Assistente Virtual não está configurado corretamente. Fale com o administrador do site. (Erro: Chave de API ausente ou inválida)");
+        throw new Error("A API do Gemini não foi inicializada. Por favor, forneça uma chave de API válida na tela de configuração.");
     }
     return ai;
 }

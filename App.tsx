@@ -5,7 +5,8 @@ import ChatInput from './components/ChatInput';
 import ErrorMessage from './components/ErrorMessage';
 import BookmarksPanel from './components/BookmarksPanel';
 import BibleNavPanel from './components/BibleNavPanel';
-import { generateResponse, generateSpeech } from './services/geminiService';
+import ApiKeyScreen from './components/ApiKeyScreen';
+import { generateResponse, generateSpeech, initializeAi } from './services/geminiService';
 import { verses } from './data/verses';
 import { suggestionPrompts } from './data/suggestions';
 import type { Message, ChatMode, Bookmark } from './types';
@@ -15,6 +16,7 @@ const CHAT_HISTORY_KEY = 'virtual-assistant-chat-history';
 const BOOKMARKS_KEY = 'virtual-assistant-bookmarks';
 const THEME_KEY = 'virtual-assistant-theme';
 const FONT_SIZE_KEY = 'virtual-assistant-font-size';
+const API_KEY_LOCALSTORAGE_KEY = 'virtual-assistant-api-key';
 
 export type FontSize = 'text-sm' | 'text-base' | 'text-lg';
 export type Theme = 'light' | 'dark' | 'system';
@@ -90,6 +92,44 @@ const App: React.FC = () => {
   const [breakpoint, setBreakpoint] = useState(() => getBreakpoint(window.innerWidth));
   const isMobile = breakpoint === 'xs';
   const isDesktopLayout = breakpoint !== 'xs' && breakpoint !== 'sm';
+  
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
+  const [initError, setInitError] = useState<string | null>(null);
+
+  // Attempt to initialize the AI service on first load
+  useEffect(() => {
+    const attemptInitialization = () => {
+      // The environment variable is prioritized for deployed instances.
+      const envKey = process.env.API_KEY;
+      // The stored key is the user-provided fallback.
+      const storedKey = localStorage.getItem(API_KEY_LOCALSTORAGE_KEY);
+      
+      const keyToTry = envKey || storedKey;
+
+      if (keyToTry) {
+        if (initializeAi(keyToTry)) {
+          setIsInitialized(true);
+        } else {
+          // This can happen if a stored key becomes invalid.
+          // Clear it and prompt the user for a new one.
+          setInitError("A chave de API salva é inválida. Por favor, insira uma nova.");
+          localStorage.removeItem(API_KEY_LOCALSTORAGE_KEY);
+        }
+      }
+    };
+    attemptInitialization();
+  }, []);
+
+  // Handler for when the user saves a new API key from the ApiKeyScreen
+  const handleApiKeySave = (key: string) => {
+    if (initializeAi(key)) {
+        localStorage.setItem(API_KEY_LOCALSTORAGE_KEY, key);
+        setIsInitialized(true);
+        setInitError(null);
+    } else {
+        setInitError("A chave de API fornecida é inválida. Verifique a chave e tente novamente.");
+    }
+  };
 
   // Apply theme
   useEffect(() => {
@@ -347,6 +387,10 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
   const handleUpdateBookmarkNote = useCallback((bookmarkId: string, notes: string) => {
     setBookmarks(prev => prev.map(b => b.id === bookmarkId ? { ...b, notes } : b));
   }, []);
+
+  if (!isInitialized) {
+    return <ApiKeyScreen onSave={handleApiKeySave} initialError={initError} />;
+  }
 
   return (
     <div className="flex h-screen font-sans bg-gray-100 dark:bg-gray-900 overflow-hidden">
