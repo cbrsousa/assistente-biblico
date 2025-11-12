@@ -6,7 +6,7 @@ import ErrorMessage from './components/ErrorMessage';
 import BookmarksPanel from './components/BookmarksPanel';
 import BibleNavPanel from './components/BibleNavPanel';
 import ApiKeyScreen from './components/ApiKeyScreen';
-import { generateResponse, generateSpeech, initializeAi } from './services/geminiService';
+import { generateResponse, initializeAi } from './services/geminiService';
 import { verses } from './data/verses';
 import { suggestionPrompts } from './data/suggestions';
 import type { Message, ChatMode, Bookmark } from './types';
@@ -30,43 +30,10 @@ const getBreakpoint = (width: number): string => {
   return 'xl';
 };
 
-/**
- * Strips markdown formatting from a string to prepare it for Text-to-Speech.
- * @param markdown The raw markdown string.
- * @returns A plain text string.
- */
-const stripMarkdownForTTS = (markdown: string): string => {
-  let text = markdown;
-
-  // Block-level elements
-  text = text
-    .replace(/^#{1,6}\s/gm, '') // Headings
-    .replace(/^\s*[-*+]\s/gm, '') // Unordered list items
-    .replace(/^\s*\d+\.\s/gm, '') // Ordered list items
-    .replace(/^\s*>\s?/gm, '') // Blockquotes
-    .replace(/^---/gm, ''); // Horizontal rules
-
-  // Inline elements
-  text = text
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Links
-    .replace(/(\*\*|__)(.*?)\1/g, '$2') // Bold
-    .replace(/(\*|_)(.*?)\1/g, '$2') // Italic
-    .replace(/~~(.*?)~~/g, '$1') // Strikethrough
-    .replace(/`(.*?)`/g, '$1'); // Inline code
-
-  // Cleanup
-  text = text
-    .replace(/\n{2,}/g, '\n') // Collapse multiple newlines
-    .trim();
-
-  return text;
-};
-
 
 const App: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
-  const [audioCache, setAudioCache] = useState<Map<string, string>>(new Map());
   
   const [isNavOpen, setIsNavOpen] = useState<boolean>(true); // Bible Nav state
   const [isBookmarksOpen, setIsBookmarksOpen] = useState<boolean>(false); // Bookmarks state
@@ -218,20 +185,10 @@ const App: React.FC = () => {
     localStorage.setItem(FONT_SIZE_KEY, fontSize);
   }, [fontSize]);
   
-  const handleAudioGenerated = useCallback((messageId: string, audioData: string) => {
-    setAudioCache(prev => {
-        const newCache = new Map(prev);
-        newCache.set(messageId, audioData);
-        return newCache;
-    });
-  }, []);
 
   const handleSendMessage = useCallback(async (prompt: string) => {
     if (!prompt.trim() || isLoading) return;
     updateSuggestions();
-
-    // Stop any ongoing speech synthesis
-    window.speechSynthesis.cancel();
 
     // Close sidebars on mobile when a message is sent for better focus
     if (!isDesktopLayout) {
@@ -328,17 +285,6 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
           : msg
       ));
 
-      // Pre-generate audio in the background for faster playback
-      if (finalBotResponse.text) {
-        generateSpeech(stripMarkdownForTTS(finalBotResponse.text))
-          .then(base64Audio => {
-            handleAudioGenerated(botMessageId, base64Audio);
-          })
-          .catch(err => {
-            // Fail silently, user can still generate manually.
-            console.error("Background audio generation failed:", err);
-          });
-      }
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
       if (e instanceof Error && (
@@ -354,7 +300,7 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, messages, mode, updateSuggestions, isDesktopLayout, handleAudioGenerated]);
+  }, [isLoading, messages, mode, updateSuggestions, isDesktopLayout]);
 
   const handleToggleBookmark = useCallback((message: Message) => {
     setBookmarks(prev => {
@@ -422,8 +368,6 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
               bookmarks={bookmarks}
               onToggleBookmark={handleToggleBookmark}
               isMobile={isMobile}
-              audioCache={audioCache}
-              onAudioGenerated={handleAudioGenerated}
             />
             {error && <ErrorMessage message={error} onClear={() => setError(null)} />}
             <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} suggestions={suggestions} />

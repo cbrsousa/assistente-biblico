@@ -75,7 +75,7 @@ const Header: React.FC<HeaderProps> = ({
       </div>
       <div className="flex items-center space-x-2 sm:space-x-4">
         <UserCounter />
-        {!isMobile && <ModeSelector currentMode={currentMode} onModeChange={onModeChange} isMobile={isMobile} />}
+        <ModeSelector currentMode={currentMode} onModeChange={onModeChange} isMobile={isMobile} />
 
         {!isDesktopLayout && (
             <button
@@ -124,15 +124,6 @@ const Header: React.FC<HeaderProps> = ({
                     {fontSize === 'text-sm' ? 'Pequeno' : fontSize === 'text-base' ? 'Normal' : 'Grande'}
                 </button>
               </div>
-
-              {isMobile && (
-                 <>
-                    <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
-                    <div className="px-4 py-2">
-                        <ModeSelector currentMode={currentMode} onModeChange={onModeChange} isMobile={isMobile} />
-                    </div>
-                 </>
-              )}
             </div>
           )}
         </div>

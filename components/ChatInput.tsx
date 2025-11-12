@@ -1,13 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import SuggestionPills from './SuggestionPills';
-
-// Web Speech API interfaces for broader compatibility
-declare global {
-  interface Window {
-    SpeechRecognition: any;
-    webkitSpeechRecognition: any;
-  }
-}
 
 interface ChatInputProps {
   onSendMessage: (message: string) => void;
@@ -17,72 +9,9 @@ interface ChatInputProps {
 
 const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, suggestions }) => {
   const [input, setInput] = useState('');
-  const [isListening, setIsListening] = useState(false);
-  const recognitionRef = useRef<any>(null);
 
-  // Setup Speech Recognition
-  useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      console.warn("Speech recognition not supported by this browser.");
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.lang = 'pt-BR';
-    recognition.interimResults = true;
-
-    recognition.onresult = (event: any) => {
-      // Reconstruct the transcript from all results to handle interim updates correctly
-      let transcript = '';
-      for (let i = 0; i < event.results.length; ++i) {
-        transcript += event.results[i][0].transcript;
-      }
-      setInput(transcript);
-    };
-    
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
-    recognition.onerror = (event: any) => {
-      console.error('Speech recognition error', event.error);
-      setIsListening(false);
-    };
-
-    recognitionRef.current = recognition;
-
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-    };
-  }, []); // Empty dependency array ensures this runs only once on mount.
-
-  const toggleListening = () => {
-    if (isLoading) return;
-    
-    if (!recognitionRef.current) {
-      alert('Seu navegador não suporta a funcionalidade de voz.');
-      return;
-    }
-
-    if (isListening) {
-      recognitionRef.current.stop();
-      // The `onend` event will set isListening to false
-    } else {
-      setInput(''); // Clear input for new speech
-      recognitionRef.current.start();
-      setIsListening(true);
-    }
-  };
-  
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isListening) {
-        recognitionRef.current.stop();
-    }
     if (input.trim() && !isLoading) {
       onSendMessage(input);
       setInput('');
@@ -129,22 +58,10 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, suggest
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder={isListening ? "Ouvindo..." : "Faça uma pergunta bíblica..."}
+                  placeholder="Faça uma pergunta bíblica..."
                   disabled={isLoading}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 dark:disabled:bg-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 pr-10"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 dark:disabled:bg-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
                 />
-                 <button
-                    type="button"
-                    onClick={toggleListening}
-                    disabled={isLoading}
-                    className={`absolute inset-y-0 right-0 flex items-center pr-3 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors rounded-full ${isListening ? 'text-blue-600' : ''}`}
-                    aria-label={isListening ? "Parar de ouvir" : "Falar"}
-                    title={isListening ? "Parar de ouvir" : "Falar"}
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                    </svg>
-                </button>
             </div>
             <button
               type="submit"

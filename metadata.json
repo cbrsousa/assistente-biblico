@@ -1,7 +1,5 @@
 {
   "name": "assistente-b-blico",
   "description": "An intelligent chatbot powered by Gemini, designed to provide insights, answer questions, and discuss topics related to the Holy Bible. Features multiple modes including fast responses, deep thinking, and web-grounded answers.",
-  "requestFramePermissions": [
-    "microphone"
-  ]
+  "requestFramePermissions": []
 }
