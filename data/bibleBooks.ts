@@ -91,9 +91,15 @@ export const bibleBookChapters: { [book: string]: number } = {
 // Generate a list of book names for regex matching, including common names without numbers.
 const baseBookNames = Object.keys(bibleBookChapters).map(k => k.replace(/^[1-3]\s/, ''));
 
-export const bibleBookRegexList = [...new Set([
+const allBookNamesAndAliases = [
     ...baseBookNames,
     'Salmo', // for Salmos
     'Cânticos', // for Cantares de Salomão
     'Cantares', // for Cantares de Salomão
-])];
+];
+
+// Remove duplicates and sort by length descending to ensure longer names
+// (e.g., "Cantares de Salomão") are matched before shorter ones ("Cantares").
+// This prevents the regex from prematurely matching a shorter prefix.
+export const bibleBookRegexList = [...new Set(allBookNamesAndAliases)]
+    .sort((a, b) => b.length - a.length);
