@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import type { Message, Bookmark } from '../types';
 import type { FontSize } from '../App';
 import WelcomeMessage from './WelcomeMessage';
@@ -20,7 +20,7 @@ interface FormattedMessageProps {
  * A component that parses a string for Bible verses and turns them into clickable buttons
  * that trigger an in-app action to display the verse.
  */
-const FormattedMessage: React.FC<FormattedMessageProps> = ({ text, onSendMessage }) => {
+const FormattedMessage: React.FC<FormattedMessageProps> = React.memo(function FormattedMessage({ text, onSendMessage }) {
   const parts: React.ReactNode[] = [];
   let lastIndex = 0;
 
@@ -59,7 +59,7 @@ const FormattedMessage: React.FC<FormattedMessageProps> = ({ text, onSendMessage
   }
 
   return <>{parts.map((part, index) => <React.Fragment key={index}>{part}</React.Fragment>)}</>;
-};
+});
 
 
 interface MessageBubbleProps {
@@ -70,7 +70,7 @@ interface MessageBubbleProps {
   onToggleBookmark: (message: Message) => void;
 }
 
-const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onSendMessage, fontSize, isBookmarked, onToggleBookmark }) => {
+const MessageBubble: React.FC<MessageBubbleProps> = React.memo(function MessageBubble({ message, onSendMessage, fontSize, isBookmarked, onToggleBookmark }) {
   const isModel = message.role === 'model';
   const bookmarkRef = useRef<HTMLButtonElement>(null);
   
@@ -138,7 +138,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onSendMessage, f
       </div>
     </div>
   );
-};
+});
 
 interface ChatHistoryProps {
   messages: Message[];
@@ -218,7 +218,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({ messages, onSendMessage, font
     setSelectionInfo(null);
   };
 
-  const bookmarkedIds = new Set(bookmarks.map(b => b.id));
+  const bookmarkedIds = useMemo(() => new Set(bookmarks.map(b => b.id)), [bookmarks]);
 
   return (
     <div

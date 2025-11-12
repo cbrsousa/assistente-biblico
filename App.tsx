@@ -272,9 +272,15 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
           mode, 
           historyForAPI, 
           (chunk) => {
-              setMessages(prev => prev.map(msg => 
-                  msg.id === botMessageId ? { ...msg, text: msg.text + chunk } : msg
-              ));
+              setMessages(prev => {
+                if (prev.length === 0) return prev;
+                const lastMessage = prev[prev.length - 1];
+                if (lastMessage.id === botMessageId) {
+                  const updatedLastMessage = { ...lastMessage, text: lastMessage.text + chunk };
+                  return [...prev.slice(0, -1), updatedLastMessage];
+                }
+                return prev;
+              });
           }
       );
       
