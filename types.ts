@@ -20,3 +20,8 @@ export interface Bookmark {
   text: string;
   notes?: string;
 }
+
+export interface User {
+  name: string;
+  email: string;
+}

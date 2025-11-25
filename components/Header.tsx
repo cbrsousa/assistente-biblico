@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import ModeSelector from './ModeSelector';
 import UserCounter from './UserCounter';
@@ -15,6 +16,8 @@ interface HeaderProps {
   onToggleBookmarks: () => void;
   isMobile: boolean;
   isDesktopLayout: boolean;
+  onLogout: () => void;
+  userName?: string;
 }
 
 const Header: React.FC<HeaderProps> = ({ 
@@ -27,7 +30,9 @@ const Header: React.FC<HeaderProps> = ({
   onToggleNav,
   onToggleBookmarks,
   isMobile,
-  isDesktopLayout
+  isDesktopLayout,
+  onLogout,
+  userName
 }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
@@ -98,6 +103,13 @@ const Header: React.FC<HeaderProps> = ({
 
           {isSettingsOpen && (
             <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-20 border border-gray-200 dark:border-gray-700">
+               {userName && (
+                <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 uppercase">Logado como</p>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">{userName}</p>
+                </div>
+               )}
+
               <div className="px-4 py-2 flex justify-between items-center">
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Tema</span>
                  <button 
@@ -124,6 +136,21 @@ const Header: React.FC<HeaderProps> = ({
                     {fontSize === 'text-sm' ? 'Pequeno' : fontSize === 'text-base' ? 'Normal' : 'Grande'}
                 </button>
               </div>
+
+              <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+
+              <button
+                onClick={() => {
+                    onLogout();
+                    setIsSettingsOpen(false);
+                }}
+                className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Sair
+              </button>
             </div>
           )}
         </div>

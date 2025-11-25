@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import Header from './components/Header';
 import ChatHistory from './components/ChatHistory';
@@ -6,10 +7,11 @@ import ErrorMessage from './components/ErrorMessage';
 import BookmarksPanel from './components/BookmarksPanel';
 import BibleNavPanel from './components/BibleNavPanel';
 import ApiKeyScreen from './components/ApiKeyScreen';
+import LoginScreen from './components/LoginScreen';
 import { generateResponse, initializeAi } from './services/geminiService';
 import { verses } from './data/verses';
 import { suggestionPrompts } from './data/suggestions';
-import type { Message, ChatMode, Bookmark } from './types';
+import type { Message, ChatMode, Bookmark, User } from './types';
 
 // Simplified localStorage keys for a single, public experience
 const CHAT_HISTORY_KEY = 'virtual-assistant-chat-history';
@@ -32,6 +34,9 @@ const getBreakpoint = (width: number): string => {
 
 
 const App: React.FC = () => {
+  // Auth State
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   
@@ -97,6 +102,16 @@ const App: React.FC = () => {
         setInitError("A chave de API fornecida é inválida. Verifique a chave e tente novamente.");
     }
   };
+
+  // Auth Handlers
+  const handleLogin = (user: User) => {
+    setCurrentUser(user);
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+  };
+
 
   // Apply theme
   useEffect(() => {
@@ -327,6 +342,12 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
     setBookmarks(prev => prev.map(b => b.id === bookmarkId ? { ...b, notes } : b));
   }, []);
 
+
+  // Render Flow: Login -> ApiKey -> Main App
+  if (!currentUser) {
+    return <LoginScreen onLogin={handleLogin} />;
+  }
+
   if (!isInitialized) {
     return <ApiKeyScreen onSave={handleApiKeySave} initialError={initError} />;
   }
@@ -364,6 +385,8 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
           onToggleBookmarks={() => setIsBookmarksOpen(!isBookmarksOpen)}
           isMobile={isMobile}
           isDesktopLayout={isDesktopLayout}
+          onLogout={handleLogout}
+          userName={currentUser.name}
         />
         <div className="flex-1 flex overflow-hidden">
           <main className="flex-1 flex flex-col overflow-hidden bg-gray-200 dark:bg-gray-800">
