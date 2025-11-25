@@ -82,7 +82,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                 <path d="M11.25 4.533A9.707 9.707 0 0 0 6 3a9.735 9.735 0 0 0-3.25.555.75.75 0 0 0-.5.707v14.25a.75.75 0 0 0 1 .707A9.707 9.707 0 0 0 6 18a9.735 9.735 0 0 0 3.25.555.75.75 0 0 0 .5-.707V5.24a.75.75 0 0 0-1-.707Z" />
                 <path d="M12.75 4.533A9.707 9.707 0 0 1 18 3a9.735 9.735 0 0 1 3.25.555.75.75 0 0 1 .5.707v14.25a.75.75 0 0 1-1 .707A9.707 9.707 0 0 1 18 18a9.735 9.735 0 0 1-3.25.555.75.75 0 0 1-.5-.707V5.24a.75.75 0 0 1 1-.707Z" />
             </svg>
-            <h2 className="text-2xl font-bold">Assistente Bíblico</h2>
+            <h2 className="text-2xl font-bold">Assistente Bíblico CBR</h2>
             <p className="text-blue-100 mt-1">
                 {isRegistering ? 'Crie sua conta local' : 'Bem-vindo de volta'}
             </p>

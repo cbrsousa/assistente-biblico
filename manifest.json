@@ -1,6 +1,6 @@
 {
-  "name": "Assistente Virtual Bíblico - Biblical Chatbot",
-  "short_name": "Assistente Bíblico",
+  "name": "Assistente Bíblico CBR",
+  "short_name": "Assistente CBR",
   "description": "An intelligent chatbot powered by Gemini, designed to provide insights, answer questions, and discuss topics related to the Holy Bible. Features multiple modes including fast responses, deep thinking, and web-grounded answers.",
   "start_url": ".",
   "scope": ".",
