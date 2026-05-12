@@ -34,7 +34,7 @@ const ApiKeyScreen: React.FC<ApiKeyScreenProps> = ({ onSave, initialError }) => 
         
         <div className="mt-6 text-left bg-gray-50 dark:bg-gray-700 p-4 rounded-md border border-gray-200 dark:border-gray-600">
             <p className="text-sm text-gray-700 dark:text-gray-200">
-                <strong className="font-semibold">Sua chave é segura.</strong> Ela é armazenada <strong className="font-semibold">apenas no seu navegador</strong> e nunca é enviada para nossos servidores.
+                <strong className="font-semibold">Sua chave é segura.</strong> Ela é armazenada de forma criptografada em seu perfil e nunca é compartilhada. Ela permite que você use o assistente em qualquer dispositivo.
             </p>
             <p className="mt-2 text-sm text-gray-700 dark:text-gray-200">
                 Você pode obter sua chave de API gratuitamente no{' '}

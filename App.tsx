@@ -69,13 +69,13 @@ const App: React.FC = () => {
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
   const [initError, setInitError] = useState<string | null>(null);
 
-  // Attempt to initialize the AI service on first load
+  // Attempt to initialize the AI service when user or environment changes
   useEffect(() => {
     const attemptInitialization = () => {
       // The environment variable is prioritized for deployed instances.
       const envKey = process.env.API_KEY;
-      // The stored key is the user-provided fallback.
-      const storedKey = localStorage.getItem(API_KEY_LOCALSTORAGE_KEY);
+      // The stored key is the user-provided fallback (Supabase first, then local storage).
+      const storedKey = currentUser?.geminiApiKey || localStorage.getItem(API_KEY_LOCALSTORAGE_KEY);
       
       const keyToTry = envKey || storedKey;
 
@@ -84,18 +84,36 @@ const App: React.FC = () => {
           setIsInitialized(true);
         } else {
           // This can happen if a stored key becomes invalid.
-          // Clear it and prompt the user for a new one.
           setInitError("A chave de API salva é inválida. Por favor, insira uma nova.");
-          localStorage.removeItem(API_KEY_LOCALSTORAGE_KEY);
+          if (currentUser?.geminiApiKey) {
+            // If it was from Supabase, error is clearer
+            setInitError("A chave de API salva em seu perfil é inválida. Atualize-a.");
+          } else {
+            localStorage.removeItem(API_KEY_LOCALSTORAGE_KEY);
+          }
         }
+      } else {
+        // If not initialized and no key found, ensure we are not "initialized"
+        setIsInitialized(false);
       }
     };
     attemptInitialization();
-  }, []);
+  }, [currentUser?.geminiApiKey]);
 
   // Handler for when the user saves a new API key from the ApiKeyScreen
-  const handleApiKeySave = (key: string) => {
+  const handleApiKeySave = async (key: string) => {
     if (initializeAi(key)) {
+        if (currentUser?.id) {
+          try {
+            const { error } = await supabase
+              .from('profiles')
+              .upsert({ id: currentUser.id, gemini_api_key: key });
+            if (error) throw error;
+            setCurrentUser(prev => prev ? { ...prev, geminiApiKey: key } : null);
+          } catch (err) {
+            console.error('Error saving API key to Supabase:', err);
+          }
+        }
         localStorage.setItem(API_KEY_LOCALSTORAGE_KEY, key);
         setIsInitialized(true);
         setInitError(null);
@@ -190,6 +208,23 @@ const App: React.FC = () => {
   useEffect(() => {
     const loadUserData = async () => {
       if (!currentUser?.id) return;
+
+      // Load Profile (including Gemini API Key)
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', currentUser.id)
+        .single();
+
+      if (profileError && profileError.code !== 'PGRST116') {
+        console.error('Error loading profile:', profileError);
+      } else if (profileData) {
+        setCurrentUser(prev => ({
+          ...prev!,
+          name: profileData.full_name || prev!.name,
+          geminiApiKey: profileData.gemini_api_key,
+        }));
+      }
 
       // Load Messages
       const { data: messagesData, error: messagesError } = await supabase
