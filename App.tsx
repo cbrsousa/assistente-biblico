@@ -9,6 +9,7 @@ import BibleNavPanel from './components/BibleNavPanel';
 import ApiKeyScreen from './components/ApiKeyScreen';
 import LoginScreen from './components/LoginScreen';
 import { generateResponse, initializeAi } from './services/geminiService';
+import { supabase } from './lib/supabase';
 import { verses } from './data/verses';
 import { suggestionPrompts } from './data/suggestions';
 import type { Message, ChatMode, Bookmark, User } from './types';
@@ -108,10 +109,43 @@ const App: React.FC = () => {
     setCurrentUser(user);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setCurrentUser(null);
+    setMessages([]);
+    setBookmarks([]);
   };
 
+  // Auth State Listener
+  useEffect(() => {
+    // Check active sessions and sets the user
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setCurrentUser({
+          id: session.user.id,
+          name: session.user.user_metadata.full_name || 'Usuário',
+          email: session.user.email || '',
+        });
+      }
+    });
+
+    // Listen for changes on auth state (sign in, sign out, etc.)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        setCurrentUser({
+          id: session.user.id,
+          name: session.user.user_metadata.full_name || 'Usuário',
+          email: session.user.email || '',
+        });
+      } else {
+        setCurrentUser(null);
+        setMessages([]);
+        setBookmarks([]);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Apply theme
   useEffect(() => {
@@ -152,49 +186,52 @@ const App: React.FC = () => {
     setSuggestions(shuffled.slice(0, 4));
   }, []);
 
-  // Load data on initial render
+  // Load data from Supabase when user logs in
+  useEffect(() => {
+    const loadUserData = async () => {
+      if (!currentUser?.id) return;
+
+      // Load Messages
+      const { data: messagesData, error: messagesError } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: true });
+
+      if (messagesError) {
+        console.error('Error loading messages:', messagesError);
+      } else if (messagesData) {
+        setMessages(messagesData.map(m => ({
+          id: m.id,
+          role: m.role,
+          text: m.text,
+          sources: m.sources,
+        })));
+      }
+
+      // Load Bookmarks
+      const { data: bookmarksData, error: bookmarksError } = await supabase
+        .from('bookmarks')
+        .select('*')
+        .eq('user_id', currentUser.id);
+
+      if (bookmarksError) {
+        console.error('Error loading bookmarks:', bookmarksError);
+      } else if (bookmarksData) {
+        setBookmarks(bookmarksData.map(b => ({
+          id: b.id,
+          text: b.text,
+          notes: b.notes,
+        })));
+      }
+    };
+
+    loadUserData();
+  }, [currentUser?.id]);
+
   useEffect(() => {
     updateSuggestions(); // Set initial suggestions
-    try {
-      const savedMessages = localStorage.getItem(CHAT_HISTORY_KEY);
-      setMessages(savedMessages ? JSON.parse(savedMessages) : []);
-    } catch (error) {
-      console.error("Failed to load messages from localStorage", error);
-      setMessages([]);
-    }
-    
-    try {
-      const savedBookmarks = localStorage.getItem(BOOKMARKS_KEY);
-      setBookmarks(savedBookmarks ? JSON.parse(savedBookmarks) : []);
-    } catch (error) {
-      console.error("Failed to load bookmarks from localStorage", error);
-      setBookmarks([]);
-    }
   }, [updateSuggestions]);
-
-
-  // Save messages when they change
-  useEffect(() => {
-    if (messages.length > 0) {
-      try {
-        localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(messages));
-      } catch (error) {
-        console.error("Failed to save messages to localStorage", error);
-      }
-    } else {
-        // Also handle clearing history
-        localStorage.removeItem(CHAT_HISTORY_KEY);
-    }
-  }, [messages]);
-
-  // Save bookmarks when they change
-  useEffect(() => {
-    try {
-      localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks));
-    } catch (error) {
-      console.error("Failed to save bookmarks to localStorage", error);
-    }
-  }, [bookmarks]);
 
   useEffect(() => {
     localStorage.setItem(FONT_SIZE_KEY, fontSize);
@@ -235,6 +272,18 @@ const App: React.FC = () => {
       role: 'user',
       text: prompt,
     };
+    
+    // Save User Message to Supabase
+    if (currentUser?.id) {
+      supabase.from('messages').insert({
+        id: userMessage.id,
+        user_id: currentUser.id,
+        role: userMessage.role,
+        text: userMessage.text,
+      }).then(({ error }) => {
+        if (error) console.error('Error saving user message:', error);
+      });
+    }
     
     const historyForAPI = [...messages];
     setMessages(prev => [...prev, userMessage]);
@@ -306,6 +355,19 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
           : msg
       ));
 
+      // Save Bot Message to Supabase
+      if (currentUser?.id) {
+        supabase.from('messages').insert({
+          id: botMessageId,
+          user_id: currentUser.id,
+          role: 'model',
+          text: finalBotResponse.text,
+          sources: finalBotResponse.sources,
+        }).then(({ error }) => {
+          if (error) console.error('Error saving bot message:', error);
+        });
+      }
+
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
       if (e instanceof Error && (
@@ -327,20 +389,46 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
     setBookmarks(prev => {
       const isBookmarked = prev.some(b => b.id === message.id);
       if (isBookmarked) {
+        // Remove from Supabase
+        if (currentUser?.id) {
+          supabase.from('bookmarks').delete().eq('id', message.id).then(({ error }) => {
+            if (error) console.error('Error removing bookmark:', error);
+          });
+        }
         return prev.filter(b => b.id !== message.id);
       } else {
-        return [...prev, { id: message.id, text: message.text, notes: '' }];
+        const newBookmark = { id: message.id, text: message.text, notes: '' };
+        // Save to Supabase
+        if (currentUser?.id) {
+          supabase.from('bookmarks').insert({
+            ...newBookmark,
+            user_id: currentUser.id
+          }).then(({ error }) => {
+            if (error) console.error('Error saving bookmark:', error);
+          });
+        }
+        return [...prev, newBookmark];
       }
     });
-  }, []);
+  }, [currentUser?.id]);
 
   const handleRemoveBookmark = useCallback((bookmarkId: string) => {
+    if (currentUser?.id) {
+      supabase.from('bookmarks').delete().eq('id', bookmarkId).then(({ error }) => {
+        if (error) console.error('Error removing bookmark:', error);
+      });
+    }
     setBookmarks(prev => prev.filter(b => b.id !== bookmarkId));
-  }, []);
+  }, [currentUser?.id]);
   
   const handleUpdateBookmarkNote = useCallback((bookmarkId: string, notes: string) => {
+    if (currentUser?.id) {
+      supabase.from('bookmarks').update({ notes }).eq('id', bookmarkId).then(({ error }) => {
+        if (error) console.error('Error updating bookmark note:', error);
+      });
+    }
     setBookmarks(prev => prev.map(b => b.id === bookmarkId ? { ...b, notes } : b));
-  }, []);
+  }, [currentUser?.id]);
 
 
   // Render Flow: Login -> ApiKey -> Main App
