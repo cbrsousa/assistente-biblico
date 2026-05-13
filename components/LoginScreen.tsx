@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { BookOpen } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { User } from '../types';
 
@@ -75,10 +76,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 px-4">
       <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden animate-fade-in-up border border-gray-200 dark:border-gray-700">
         <div className="px-8 py-6 bg-blue-600 dark:bg-blue-800 text-white text-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-2" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M11.25 4.533A9.707 9.707 0 0 0 6 3a9.735 9.735 0 0 0-3.25.555.75.75 0 0 0-.5.707v14.25a.75.75 0 0 0 1 .707A9.707 9.707 0 0 0 6 18a9.735 9.735 0 0 0 3.25.555.75.75 0 0 0 .5-.707V5.24a.75.75 0 0 0-1-.707Z" />
-                <path d="M12.75 4.533A9.707 9.707 0 0 1 18 3a9.735 9.735 0 0 1 3.25.555.75.75 0 0 1 .5.707v14.25a.75.75 0 0 1-1 .707A9.707 9.707 0 0 1 18 18a9.735 9.735 0 0 1-3.25.555.75.75 0 0 1-.5-.707V5.24a.75.75 0 0 1 1-.707Z" />
-            </svg>
+            <BookOpen className="h-12 w-12 mx-auto mb-2" />
             <h2 className="text-2xl font-bold">Assistente Bíblico CBR</h2>
             <p className="text-blue-100 mt-1">
                 {isRegistering ? 'Crie sua conta' : 'Bem-vindo de volta'}
