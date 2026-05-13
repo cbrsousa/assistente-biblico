@@ -13,7 +13,7 @@ const ErrorMessage: React.FC<ErrorMessageProps> = ({ message, onClear }) => {
       role="alert"
     >
       <div>
-        <strong className="font-bold">Error: </strong>
+        <strong className="font-bold">Erro: </strong>
         <span className="block sm:inline text-base">{message}</span>
       </div>
       <button

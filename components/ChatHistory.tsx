@@ -123,7 +123,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(function MessageB
         </div>
         {message.sources && message.sources.length > 0 && (
           <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
-            <h4 className="text-sm font-semibold mb-1">Sources:</h4>
+            <h4 className="text-sm font-semibold mb-1">Fontes:</h4>
             <ul className="list-disc list-inside space-y-1">
               {message.sources.map((source, index) => (
                 <li key={index} className="text-sm">
