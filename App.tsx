@@ -12,6 +12,7 @@ import { generateResponse, initializeAi } from './services/geminiService';
 import { supabase } from './lib/supabase';
 import { verses } from './data/verses';
 import { suggestionPrompts } from './data/suggestions';
+import { fetchVerseFromBibleApi } from './services/bibleApiService';
 import type { Message, ChatMode, Bookmark, User } from './types';
 
 // Simplified localStorage keys for a single, public experience
@@ -321,6 +322,42 @@ const App: React.FC = () => {
     setMessages(prev => [...prev, userMessage]);
     
     let finalPrompt = prompt;
+
+    if (prompt.startsWith('__BIBLE_API_SEARCH__:')) {
+      const query = prompt.substring('__BIBLE_API_SEARCH__:'.length);
+      userMessage.text = `Pesquisar versículo: ${query}`;
+      setIsLoading(true);
+      
+      const results = await fetchVerseFromBibleApi(query);
+      if (results && results.length > 0) {
+        const fullText = results.map(v => `**${v.book} ${v.chapter}:${v.verse}**\n${v.text}`).join('\n\n');
+        const botMessage: Message = {
+          id: crypto.randomUUID(),
+          role: 'model',
+          text: `### 📖 Texto Bíblico Encontrado\n\n${fullText}\n\n---\n*Fonte: Bible-api.com (Tradução Almeida)*`,
+        };
+        setMessages(prev => [...prev, botMessage]);
+        
+        // Save to Supabase
+        if (currentUser?.id) {
+          supabase.from('messages').insert([
+            { id: userMessage.id, user_id: currentUser.id, role: 'user', text: userMessage.text },
+            { id: botMessage.id, user_id: currentUser.id, role: 'model', text: botMessage.text }
+          ]);
+        }
+        
+        setIsLoading(false);
+        return;
+      } else {
+        const botMessage: Message = {
+          id: crypto.randomUUID(),
+          role: 'model',
+          text: `Desculpe, não consegui encontrar a referência "${query}" usando a API de pesquisa rápida. Vou tentar consultar meu conhecimento teológico.`,
+        };
+        setMessages(prev => [...prev, botMessage]);
+        finalPrompt = `Forneça o texto bíblico para "${query}" e um breve comentário pastoral alinhado à Doutrina Batista Renovada e Carismática.`;
+      }
+    }
     
     if (prompt === '__DAILY_DEVOTIONAL_REQUEST__') {
         userMessage.text = "Gerar um devocional diário.";

@@ -9,7 +9,7 @@ import {
 } from '../data/bibleBooks';
 import type { FontSize } from '../App';
 
-type SortMode = 'canonical' | 'chronological' | 'alphabetical';
+type SortMode = 'canonical' | 'chronological' | 'alphabetical' | 'search';
 
 interface BookListProps {
   title: string;
@@ -83,6 +83,14 @@ const BibleNavPanel: React.FC<BibleNavPanelProps> = ({ isOpen, onClose, onSendMe
     const [isOldTestamentOpen, setIsOldTestamentOpen] = useState(true);
     const [isNewTestamentOpen, setIsNewTestamentOpen] = useState(true);
     const [sortMode, setSortMode] = useState<SortMode>('canonical');
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const handleSearch = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (searchQuery.trim()) {
+        onSendMessage(`__BIBLE_API_SEARCH__:${searchQuery}`);
+      }
+    };
 
     const handleBookClick = (bookName: string) => {
       setSelectedBook(prev => (prev === bookName ? null : bookName));
@@ -146,6 +154,24 @@ const BibleNavPanel: React.FC<BibleNavPanelProps> = ({ isOpen, onClose, onSendMe
                   Alfabético
                 </button>
               </div>
+
+              <form onSubmit={handleSearch} className="mt-4 relative">
+                <input
+                  type="text"
+                  placeholder="Pesquisar versículo (ex: João 3:16)..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-3 pr-10 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 dark:text-gray-100 placeholder-gray-500"
+                />
+                <button 
+                  type="submit"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-blue-500"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </button>
+              </form>
             </header>
 
             <main className="flex-1 overflow-y-auto p-4">
