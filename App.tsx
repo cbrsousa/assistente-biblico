@@ -6,9 +6,8 @@ import ChatInput from './components/ChatInput';
 import ErrorMessage from './components/ErrorMessage';
 import BookmarksPanel from './components/BookmarksPanel';
 import BibleNavPanel from './components/BibleNavPanel';
-import ApiKeyScreen from './components/ApiKeyScreen';
 import LoginScreen from './components/LoginScreen';
-import { generateResponse, initializeAi } from './services/geminiService';
+import { generateResponse } from './services/geminiService';
 import { supabase } from './lib/supabase';
 import { verses } from './data/verses';
 import { suggestionPrompts } from './data/suggestions';
@@ -67,59 +66,6 @@ const App: React.FC = () => {
   const isMobile = breakpoint === 'xs';
   const isDesktopLayout = breakpoint !== 'xs' && breakpoint !== 'sm';
   
-  const [isInitialized, setIsInitialized] = useState<boolean>(false);
-  const [initError, setInitError] = useState<string | null>(null);
-  const [isShowingApiKeyScreen, setIsShowingApiKeyScreen] = useState<boolean>(false);
-
-  // Attempt to initialize the AI service when user or environment changes
-  useEffect(() => {
-    const attemptInitialization = () => {
-      // The environment variable is prioritized for deployed instances.
-    const envKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
-    // The stored key is the user-provided fallback (Supabase first, then local storage).
-    const storedKey = currentUser?.geminiApiKey || localStorage.getItem(API_KEY_LOCALSTORAGE_KEY);
-    
-    const keyToTry = envKey || storedKey;
-
-    if (keyToTry) {
-      if (initializeAi(keyToTry)) {
-        setIsInitialized(true);
-      } else {
-        // Only set error if we explicitly have a key that failed
-        if (storedKey && !envKey) {
-          setInitError("A chave de API salva em seu perfil é inválida. Atualize-a.");
-        }
-      }
-    } else {
-      // If we don't have a key, we'll try to use the environment one anyway or just wait
-      setIsInitialized(false);
-    }
-  };
-  attemptInitialization();
-}, [currentUser?.geminiApiKey]);
-
-  // Handler for when the user saves a new API key from the ApiKeyScreen
-  const handleApiKeySave = async (key: string) => {
-    if (initializeAi(key)) {
-        if (currentUser?.id) {
-          try {
-            const { error } = await supabase
-              .from('profiles')
-              .upsert({ id: currentUser.id, gemini_api_key: key });
-            if (error) throw error;
-            setCurrentUser(prev => prev ? { ...prev, geminiApiKey: key } : null);
-          } catch (err) {
-            console.error('Error saving API key to Supabase:', err);
-          }
-        }
-        localStorage.setItem(API_KEY_LOCALSTORAGE_KEY, key);
-        setIsInitialized(true);
-        setInitError(null);
-    } else {
-        setInitError("A chave de API fornecida é inválida. Verifique a chave e tente novamente.");
-    }
-  };
-
   // Auth Handlers
   const handleLogin = (user: User) => {
     setCurrentUser(user);
@@ -130,6 +76,21 @@ const App: React.FC = () => {
     setCurrentUser(null);
     setMessages([]);
     setBookmarks([]);
+  };
+
+  const handleUpdateApiKey = async (newKey: string) => {
+    if (!currentUser?.id) return;
+    
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ gemini_api_key: newKey, updated_at: new Date().toISOString() })
+      .eq('id', currentUser.id);
+
+    if (updateError) {
+      setError(`Erro ao salvar chave API: ${updateError.message}`);
+    } else {
+      setCurrentUser(prev => prev ? { ...prev, geminiApiKey: newKey } : null);
+    }
   };
 
   // Auth State Listener
@@ -435,7 +396,8 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
                 }
                 return prev;
               });
-          }
+          },
+          currentUser?.geminiApiKey
       );
       
       // After stream is complete, update the message with the final data (including sources)
@@ -459,17 +421,8 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
       }
 
     } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
-      if (e instanceof Error && (
-            errorMessage.toLowerCase().includes('api key') ||
-            errorMessage.toLowerCase().includes('permission denied')
-         )) {
-        setError("Ocorreu um erro de autenticação com a API. Verifique a configuração.");
-      } else {
-        setError(`${errorMessage}`);
-      }
-      // Revert to the state before adding the user's message
-      setMessages(historyForAPI);
+      const errorMessage = e instanceof Error ? e.message : 'Ocorreu um erro desconhecido.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -528,30 +481,6 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
 
   return (
     <div className="flex h-screen font-sans bg-gray-100 dark:bg-gray-900 overflow-hidden relative">
-      {/* API Key Modal Overlay */}
-      {isShowingApiKeyScreen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="relative w-full max-w-lg animate-fade-in-up">
-            <button 
-              onClick={() => setIsShowingApiKeyScreen(false)}
-              className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors z-10"
-              aria-label="Fechar"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            <ApiKeyScreen 
-              onSave={(key) => {
-                handleApiKeySave(key);
-                setIsShowingApiKeyScreen(false);
-              }} 
-              initialError={initError} 
-            />
-          </div>
-        </div>
-      )}
-
       <BibleNavPanel
         isOpen={isNavOpen}
         onClose={() => setIsNavOpen(false)}
@@ -584,9 +513,9 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
           isMobile={isMobile}
           isDesktopLayout={isDesktopLayout}
           onLogout={handleLogout}
-          onOpenApiKeySettings={() => setIsShowingApiKeyScreen(true)}
           userName={currentUser.name}
-          hasEnvKey={!!process.env.GEMINI_API_KEY || !!process.env.API_KEY}
+          geminiApiKey={currentUser.geminiApiKey}
+          onUpdateApiKey={handleUpdateApiKey}
         />
         <div className="flex-1 flex overflow-hidden">
           <main className="flex-1 flex flex-col overflow-hidden bg-gray-200 dark:bg-gray-800">

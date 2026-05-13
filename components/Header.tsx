@@ -17,9 +17,9 @@ interface HeaderProps {
   isMobile: boolean;
   isDesktopLayout: boolean;
   onLogout: () => void;
-  onOpenApiKeySettings: () => void;
   userName?: string;
-  hasEnvKey?: boolean;
+  geminiApiKey?: string;
+  onUpdateApiKey: (key: string) => Promise<void>;
 }
 
 const Header: React.FC<HeaderProps> = ({ 
@@ -34,12 +34,18 @@ const Header: React.FC<HeaderProps> = ({
   isMobile,
   isDesktopLayout,
   onLogout,
-  onOpenApiKeySettings,
   userName,
-  hasEnvKey
+  geminiApiKey,
+  onUpdateApiKey
 }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [tempApiKey, setTempApiKey] = useState(geminiApiKey || '');
+  const [isSavingKey, setIsSavingKey] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setTempApiKey(geminiApiKey || '');
+  }, [geminiApiKey]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -142,25 +148,59 @@ const Header: React.FC<HeaderProps> = ({
               </div>
 
               <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
-              
-              {!hasEnvKey && (
-                <>
-                  <button
-                    onClick={() => {
-                        onOpenApiKeySettings();
-                        setIsSettingsOpen(false);
-                    }}
-                    className="w-full text-left px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                    </svg>
-                    Configurar Chave API
-                  </button>
-                  <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
-                </>
-              )}
 
+              <div className="px-4 py-2">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 uppercase">Chave Gemini API (Supabase)</p>
+                <div className="flex flex-col space-y-2">
+                    <input
+                        type="password"
+                        value={tempApiKey}
+                        onChange={(e) => setTempApiKey(e.target.value)}
+                        placeholder="Insira sua chave..."
+                        className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100"
+                    />
+                    <button
+                        onClick={async () => {
+                            setIsSavingKey(true);
+                            await onUpdateApiKey(tempApiKey);
+                            setIsSavingKey(false);
+                            // Keep settings open to show it's saved or close it?
+                            // Let's close it after a brief moment or just show "Saved"
+                        }}
+                        disabled={isSavingKey}
+                        className={`w-full py-1 text-xs font-medium text-white rounded transition-colors ${
+                            isSavingKey ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'
+                        }`}
+                    >
+                        {isSavingKey ? 'Salvando...' : 'Salvar no Perfil'}
+                    </button>
+                    <p className="text-[10px] text-gray-400 leading-tight">
+                        A chave será salva de forma segura no seu perfil para usos futuros.
+                    </p>
+                </div>
+              </div>
+
+              <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+
+              <button
+                onClick={async () => {
+                   if (window.aistudio?.openSelectKey) {
+                     await window.aistudio.openSelectKey();
+                   } else {
+                     alert("Por favor, acesse Configurações > Segredos no menu lateral do AI Studio para configurar sua GEMINI_API_KEY.");
+                   }
+                   setIsSettingsOpen(false);
+                }}
+                className="w-full text-left px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                </svg>
+                Configurar Chave API
+              </button>
+
+              <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+              
               <button
                 onClick={() => {
                     onLogout();
