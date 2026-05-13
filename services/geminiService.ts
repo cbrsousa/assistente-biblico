@@ -26,6 +26,9 @@ interface GeminiResponse {
 
 const generateAI = (apiKey?: string) => {
     const key = apiKey || process.env.GEMINI_API_KEY || process.env.API_KEY || "";
+    if (!key) {
+        throw new Error("Chave de API não configurada. Por favor, adicione sua GEMINI_API_KEY no menu lateral (Configurações > Segredos) ou salve-a no seu perfil.");
+    }
     return new GoogleGenAI({ apiKey: key });
 };
 
@@ -39,7 +42,7 @@ export const generateResponse = async (
   try {
     const ai = generateAI(userApiKey);
 
-    const modelConfig: any = {
+    const modelConfig: Record<string, { name: string, config: any }> = {
       standard: { name: 'gemini-3-flash-preview', config: {} },
       fast: { name: 'gemini-3.1-flash-lite', config: {} },
       deepThought: {
@@ -58,42 +61,64 @@ export const generateResponse = async (
       { role: 'user', parts: [{ text: prompt }] }
     ];
 
+    const config = {
+      systemInstruction: SYSTEM_INSTRUCTION,
+      tools: [{ googleSearch: {} }],
+      ...selected.config
+    };
+
     if (onStreamUpdate) {
         const response = await ai.models.generateContentStream({
             model: selected.name,
             contents: contents,
-            config: {
-                systemInstruction: SYSTEM_INSTRUCTION,
-                ...selected.config
-            }
+            config: config
         });
 
         let fullText = "";
+        let finalResponse: any = null;
+
         for await (const chunk of response) {
             const textChunk = chunk.text;
             if (textChunk) {
                 fullText += textChunk;
                 onStreamUpdate(textChunk);
             }
+            finalResponse = chunk; // Last chunk should contain metadata if available
         }
-        return { text: fullText };
+        
+        const sources = finalResponse?.candidates?.[0]?.groundingMetadata?.groundingChunks?.map((chunk: any) => {
+            if (chunk.web) {
+                return { title: chunk.web.title, url: chunk.web.uri };
+            }
+            return null;
+        }).filter(Boolean) || [];
+
+        return { text: fullText, sources };
     } else {
         const response = await ai.models.generateContent({
             model: selected.name,
             contents: contents,
-            config: {
-                systemInstruction: SYSTEM_INSTRUCTION,
-                ...selected.config
-            }
+            config: config
         });
-        return { text: response.text || "" };
-    }
 
+        const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks?.map((chunk: any) => {
+            if (chunk.web) {
+                return { title: chunk.web.title, url: chunk.web.uri };
+            }
+            return null;
+        }).filter(Boolean) || [];
+
+        return { text: response.text || "", sources };
+    }
   } catch (error: any) {
     console.error("Gemini API Error:", error);
-    if (error.message?.includes('API key not valid')) {
-        throw new Error("Chave de API inválida. Verifique as configurações de Segredos no menu lateral.");
+    const message = error.message || String(error);
+    if (message.includes('API key not valid')) {
+        throw new Error("Chave de API inválida. Verifique as configurações de Segredos ou a chave salva no seu perfil.");
     }
-    throw new Error(error.message || "Ocorreu um erro ao processar sua solicitação.");
+    if (message.includes('model not found') || message.includes('404')) {
+        throw new Error("Modelo não encontrado ou indisponível. Tente outro modo de conversa.");
+    }
+    throw new Error(message || "Ocorreu um erro ao processar sua solicitação.");
   }
 };

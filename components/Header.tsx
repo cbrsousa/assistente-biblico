@@ -150,32 +150,45 @@ const Header: React.FC<HeaderProps> = ({
               <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
 
               <div className="px-4 py-2">
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 uppercase">Chave Gemini API (Supabase)</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider font-semibold">Chave Gemini API</p>
                 <div className="flex flex-col space-y-2">
                     <input
                         type="password"
                         value={tempApiKey}
                         onChange={(e) => setTempApiKey(e.target.value)}
-                        placeholder="Insira sua chave..."
-                        className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100"
+                        placeholder="Cole aqui sua chave (AI Studio)..."
+                        className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none"
                     />
                     <button
                         onClick={async () => {
+                            const trimmedKey = tempApiKey.trim();
+                            if (!trimmedKey) {
+                                alert("Por favor, insira uma chave sólida.");
+                                return;
+                            }
                             setIsSavingKey(true);
-                            await onUpdateApiKey(tempApiKey);
+                            await onUpdateApiKey(trimmedKey);
                             setIsSavingKey(false);
-                            // Keep settings open to show it's saved or close it?
-                            // Let's close it after a brief moment or just show "Saved"
+                            // Brief feedback
+                            const btn = document.activeElement as HTMLButtonElement;
+                            const originalText = btn.innerText;
+                            btn.innerText = "✓ Salvo!";
+                            btn.classList.replace('bg-green-600', 'bg-blue-600');
+                            setTimeout(() => {
+                                btn.innerText = originalText;
+                                btn.classList.replace('bg-blue-600', 'bg-green-600');
+                                setIsSettingsOpen(false);
+                            }, 1500);
                         }}
                         disabled={isSavingKey}
-                        className={`w-full py-1 text-xs font-medium text-white rounded transition-colors ${
-                            isSavingKey ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'
+                        className={`w-full py-1.5 text-xs font-semibold text-white rounded shadow-sm transition-all ${
+                            isSavingKey ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 active:scale-95'
                         }`}
                     >
                         {isSavingKey ? 'Salvando...' : 'Salvar no Perfil'}
                     </button>
                     <p className="text-[10px] text-gray-400 leading-tight">
-                        A chave será salva de forma segura no seu perfil para usos futuros.
+                        Sua chave será armazenada no seu perfil do Supabase (e localmente) para uso futuro.
                     </p>
                 </div>
               </div>

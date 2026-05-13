@@ -79,7 +79,14 @@ const App: React.FC = () => {
   };
 
   const handleUpdateApiKey = async (newKey: string) => {
-    if (!currentUser?.id) return;
+    // Always save to localStorage as a primary or fallback mechanism
+    localStorage.setItem(API_KEY_LOCALSTORAGE_KEY, newKey);
+    
+    if (!currentUser?.id) {
+        // If not logged in, just updating local state is enough for now
+        setCurrentUser(prev => prev ? { ...prev, geminiApiKey: newKey } : null);
+        return;
+    }
     
     // Using upsert in case the profile record doesn't exist yet
     const { error: updateError } = await supabase
@@ -91,22 +98,25 @@ const App: React.FC = () => {
       });
 
     if (updateError) {
+      console.warn("Could not save to Supabase, but key is saved in localStorage:", updateError);
       if (updateError.message.includes('schema cache')) {
-        setError("A tabela 'profiles' não foi encontrada no seu Supabase. Por favor, execute o script SQL contido no arquivo supabase_schema.sql no painel SQL do seu projeto Supabase.");
+        setError("Nota: A tabela 'profiles' não foi encontrada no seu Supabase. A chave foi salva apenas localmente no seu navegador. Para salvar permanentemente na nuvem, execute o script SQL contido no arquivo supabase_schema.sql no seu painel Supabase.");
       } else {
-        setError(`Erro ao salvar chave API: ${updateError.message}`);
+        setError(`Erro ao salvar na nuvem: ${updateError.message}. A chave foi salva localmente.`);
       }
     } else {
-      setCurrentUser(prev => prev ? { ...prev, geminiApiKey: newKey } : null);
-      // Optional: show a success message or clear error
       setError(null);
     }
+    
+    setCurrentUser(prev => prev ? { ...prev, geminiApiKey: newKey } : null);
   };
 
   // Auth State Listener
   useEffect(() => {
     // Check active sessions and sets the user
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      const localKey = localStorage.getItem(API_KEY_LOCALSTORAGE_KEY);
+      
       if (session?.user) {
         const { data: profile } = await supabase
           .from('profiles')
@@ -118,13 +128,18 @@ const App: React.FC = () => {
           id: session.user.id,
           name: session.user.user_metadata.full_name || 'Usuário',
           email: session.user.email || '',
-          geminiApiKey: profile?.gemini_api_key
+          geminiApiKey: profile?.gemini_api_key || localKey || undefined
         });
+      } else if (localKey) {
+        // We can have a local key even without a user session if we allow it
+        // but for now let's just keep it in mind
       }
     });
 
     // Listen for changes on auth state (sign in, sign out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      const localKey = localStorage.getItem(API_KEY_LOCALSTORAGE_KEY);
+      
       if (session?.user) {
         // Fetch profile
         const { data: profile } = await supabase
@@ -137,7 +152,7 @@ const App: React.FC = () => {
           id: session.user.id,
           name: session.user.user_metadata.full_name || 'Usuário',
           email: session.user.email || '',
-          geminiApiKey: profile?.gemini_api_key
+          geminiApiKey: profile?.gemini_api_key || localKey || undefined
         });
       } else {
         setCurrentUser(null);
@@ -448,6 +463,8 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : 'Ocorreu um erro desconhecido.';
       setError(errorMessage);
+      // Remove the last message (the empty bot message) on error
+      setMessages(prev => prev.filter(m => m.id !== botMessageId));
     } finally {
       setIsLoading(false);
     }
