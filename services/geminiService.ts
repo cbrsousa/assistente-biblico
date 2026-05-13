@@ -25,10 +25,7 @@ interface GeminiResponse {
 }
 
 const generateAI = (apiKey?: string) => {
-    // The key provided by the user in chat as a hardcoded fallback
-    const HARDCODED_FALLBACK = "AIzaSyASGCAqUMk74UIb1WvL8GxApFTi4Ro6-WU";
-    
-    const key = apiKey || process.env.GEMINI_API_KEY || process.env.API_KEY || HARDCODED_FALLBACK || "";
+    const key = apiKey || process.env.GEMINI_API_KEY || process.env.API_KEY || "";
     if (!key) {
         throw new Error("Chave de API não configurada. Por favor, adicione sua GEMINI_API_KEY no menu lateral (Configurações > Segredos) ou salve-a no seu perfil.");
     }
@@ -47,7 +44,7 @@ export const generateResponse = async (
 
     const modelConfig: Record<string, { name: string, config: any }> = {
       standard: { name: 'gemini-3-flash-preview', config: {} },
-      fast: { name: 'gemini-3.1-flash-lite', config: {} },
+      fast: { name: 'gemini-3-flash-preview', config: {} },
       deepThought: {
         name: 'gemini-3.1-pro-preview',
         config: {}
@@ -117,11 +114,14 @@ export const generateResponse = async (
     console.error("Gemini API Error:", error);
     const message = error.message || String(error);
     if (message.includes('API key not valid')) {
-        throw new Error("Chave de API inválida. Verifique as configurações de Segredos ou a chave salva no seu perfil.");
+        throw new Error("Chave de API inválida. Verifique se a chave está correta em Configurações > Segredos.");
     }
     if (message.includes('model not found') || message.includes('404')) {
-        throw new Error("Modelo não encontrado ou indisponível. Tente outro modo de conversa.");
+        throw new Error("Modelo não encontrado ou indisponível. Selecione outro modo de conversa.");
     }
-    throw new Error(message || "Ocorreu um erro ao processar sua solicitação.");
+    if (message.includes('quota') || message.includes('429')) {
+        throw new Error("Cota de uso excedida (429). Tente novamente em alguns minutos ou use uma chave de API com faturamento ativado.");
+    }
+    throw new Error(message || "Ocorreu um erro ao processar sua solicitação pela API do Gemini.");
   }
 };
