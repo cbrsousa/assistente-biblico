@@ -99,8 +99,10 @@ const App: React.FC = () => {
 
     if (updateError) {
       console.warn("Could not save to Supabase, but key is saved in localStorage:", updateError);
+      // We don't want to nag the user with a permanent error if it's just a missing table
+      // but we should still let them know in a less intrusive way if it's a real error.
       if (updateError.message.includes('schema cache')) {
-        setError("Nota: A tabela 'profiles' não foi encontrada no seu Supabase. A chave foi salva apenas localmente no seu navegador. Para salvar permanentemente na nuvem, execute o script SQL contido no arquivo supabase_schema.sql no seu painel Supabase.");
+        console.log("A tabela 'profiles' não foi encontrada no Supabase. Usando armazenamento local.");
       } else {
         setError(`Erro ao salvar na nuvem: ${updateError.message}. A chave foi salva localmente.`);
       }

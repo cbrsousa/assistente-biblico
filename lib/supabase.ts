@@ -4,8 +4,24 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Supabase credentials are missing. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your environment variables.');
-}
+// Pre-define a dummy client if config is missing to avoid crashing on module load
+export const supabase = (supabaseUrl && supabaseAnonKey) 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : {
+      auth: {
+        onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+        getSession: async () => ({ data: { session: null } }),
+        signOut: async () => {},
+      },
+      from: () => ({
+        select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: null, error: null }), order: () => Promise.resolve({ data: [], error: null }) }) }),
+        insert: () => Promise.resolve({ data: null, error: null }),
+        upsert: () => Promise.resolve({ data: null, error: null }),
+        delete: () => ({ eq: () => Promise.resolve({ data: null, error: null }) }),
+        update: () => ({ eq: () => Promise.resolve({ data: null, error: null }) }),
+      })
+    } as any;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.warn('Supabase credentials are missing. The app will work in offline mode without cloud storage.');
+}

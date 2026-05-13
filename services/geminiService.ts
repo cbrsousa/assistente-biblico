@@ -25,7 +25,10 @@ interface GeminiResponse {
 }
 
 const generateAI = (apiKey?: string) => {
-    const key = apiKey || process.env.GEMINI_API_KEY || process.env.API_KEY || "";
+    // The key provided by the user in chat as a hardcoded fallback
+    const HARDCODED_FALLBACK = "AIzaSyASGCAqUMk74UIb1WvL8GxApFTi4Ro6-WU";
+    
+    const key = apiKey || process.env.GEMINI_API_KEY || process.env.API_KEY || HARDCODED_FALLBACK || "";
     if (!key) {
         throw new Error("Chave de API não configurada. Por favor, adicione sua GEMINI_API_KEY no menu lateral (Configurações > Segredos) ou salve-a no seu perfil.");
     }
