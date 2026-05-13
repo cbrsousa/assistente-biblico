@@ -88,6 +88,16 @@ export const bibleBookChapters: { [book: string]: number } = {
     '2 Pedro': 3, '1 João': 5, '2 João': 1, '3 João': 1, 'Judas': 1, 'Apocalipse': 22,
 };
 
+export const oldTestamentCanonical: string[] = [
+    'Gênesis', 'Êxodo', 'Levítico', 'Números', 'Deuteronômio', 'Josué', 'Juízes', 'Rute', '1 Samuel', '2 Samuel', '1 Reis', '2 Reis', '1 Crônicas', '2 Crônicas', 'Esdras', 'Neemias', 'Ester', 'Jó', 'Salmos', 'Provérbios', 'Eclesiastes', 'Cantares de Salomão', 'Isaías', 'Jeremias', 'Lamentações', 'Ezequiel', 'Daniel', 'Oseias', 'Joel', 'Amós', 'Obadias', 'Jonas', 'Miqueias', 'Naum', 'Habacuque', 'Sofonias', 'Ageu', 'Zacarias', 'Malaquias'
+];
+
+export const newTestamentCanonical: string[] = [
+    'Mateus', 'Marcos', 'Lucas', 'João', 'Atos', 'Romanos', '1 Coríntios', '2 Coríntios', 'Gálatas', 'Efésios', 'Filipenses', 'Colossenses', '1 Tessalonicenses', '2 Tessalonicenses', '1 Timóteo', '2 Timóteo', 'Tito', 'Filemom', 'Hebreus', 'Tiago', '1 Pedro', '2 Pedro', '1 João', '2 João', '3 João', 'Judas', 'Apocalipse'
+];
+
+export const allBooksAlphabetical = [...oldTestamentCanonical, ...newTestamentCanonical].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
 // Generate a list of book names for regex matching, including common names without numbers.
 const baseBookNames = Object.keys(bibleBookChapters).map(k => k.replace(/^[1-3]\s/, ''));
 
