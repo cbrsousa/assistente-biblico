@@ -65,19 +65,17 @@ export const generateResponse = async (
   const ai = getAiInstance();
 
   const modelConfig = {
-    standard: { name: 'gemini-2.5-flash', config: {} },
-    fast: { name: 'gemini-flash-lite-latest', config: {} },
+    standard: { name: 'gemini-2.0-flash', config: {} },
+    fast: { name: 'gemini-1.5-flash-8b', config: {} },
     deepThought: {
-      name: 'gemini-2.5-pro',
+      name: 'gemini-2.0-flash-thinking-exp-01-21',
       config: {
-        thinkingConfig: { thinkingBudget: 32768 },
-        temperature: 0.5,
-        topP: 0.95,
-        topK: 64,
+        thinkingConfig: { includeThoughts: true },
+        temperature: 0.7,
       }
     },
     webSearch: { 
-      name: 'gemini-2.5-flash', 
+      name: 'gemini-2.0-flash', 
       config: { tools: [{ googleSearch: {} }] }
     }
   };

@@ -68,37 +68,34 @@ const App: React.FC = () => {
   
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
   const [initError, setInitError] = useState<string | null>(null);
+  const [isShowingApiKeyScreen, setIsShowingApiKeyScreen] = useState<boolean>(false);
 
   // Attempt to initialize the AI service when user or environment changes
   useEffect(() => {
     const attemptInitialization = () => {
       // The environment variable is prioritized for deployed instances.
-      const envKey = process.env.API_KEY;
-      // The stored key is the user-provided fallback (Supabase first, then local storage).
-      const storedKey = currentUser?.geminiApiKey || localStorage.getItem(API_KEY_LOCALSTORAGE_KEY);
-      
-      const keyToTry = envKey || storedKey;
+    const envKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+    // The stored key is the user-provided fallback (Supabase first, then local storage).
+    const storedKey = currentUser?.geminiApiKey || localStorage.getItem(API_KEY_LOCALSTORAGE_KEY);
+    
+    const keyToTry = envKey || storedKey;
 
-      if (keyToTry) {
-        if (initializeAi(keyToTry)) {
-          setIsInitialized(true);
-        } else {
-          // This can happen if a stored key becomes invalid.
-          setInitError("A chave de API salva é inválida. Por favor, insira uma nova.");
-          if (currentUser?.geminiApiKey) {
-            // If it was from Supabase, error is clearer
-            setInitError("A chave de API salva em seu perfil é inválida. Atualize-a.");
-          } else {
-            localStorage.removeItem(API_KEY_LOCALSTORAGE_KEY);
-          }
-        }
+    if (keyToTry) {
+      if (initializeAi(keyToTry)) {
+        setIsInitialized(true);
       } else {
-        // If not initialized and no key found, ensure we are not "initialized"
-        setIsInitialized(false);
+        // Only set error if we explicitly have a key that failed
+        if (storedKey && !envKey) {
+          setInitError("A chave de API salva em seu perfil é inválida. Atualize-a.");
+        }
       }
-    };
-    attemptInitialization();
-  }, [currentUser?.geminiApiKey]);
+    } else {
+      // If we don't have a key, we'll try to use the environment one anyway or just wait
+      setIsInitialized(false);
+    }
+  };
+  attemptInitialization();
+}, [currentUser?.geminiApiKey]);
 
   // Handler for when the user saves a new API key from the ApiKeyScreen
   const handleApiKeySave = async (key: string) => {
@@ -466,17 +463,37 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
   }, [currentUser?.id]);
 
 
-  // Render Flow: Login -> ApiKey -> Main App
+  // Render Flow: Login -> Main App
   if (!currentUser) {
     return <LoginScreen onLogin={handleLogin} />;
   }
 
-  if (!isInitialized) {
-    return <ApiKeyScreen onSave={handleApiKeySave} initialError={initError} />;
-  }
-
   return (
-    <div className="flex h-screen font-sans bg-gray-100 dark:bg-gray-900 overflow-hidden">
+    <div className="flex h-screen font-sans bg-gray-100 dark:bg-gray-900 overflow-hidden relative">
+      {/* API Key Modal Overlay */}
+      {isShowingApiKeyScreen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-lg animate-fade-in-up">
+            <button 
+              onClick={() => setIsShowingApiKeyScreen(false)}
+              className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors z-10"
+              aria-label="Fechar"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <ApiKeyScreen 
+              onSave={(key) => {
+                handleApiKeySave(key);
+                setIsShowingApiKeyScreen(false);
+              }} 
+              initialError={initError} 
+            />
+          </div>
+        </div>
+      )}
+
       <BibleNavPanel
         isOpen={isNavOpen}
         onClose={() => setIsNavOpen(false)}
@@ -509,6 +526,7 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
           isMobile={isMobile}
           isDesktopLayout={isDesktopLayout}
           onLogout={handleLogout}
+          onOpenApiKeySettings={() => setIsShowingApiKeyScreen(true)}
           userName={currentUser.name}
         />
         <div className="flex-1 flex overflow-hidden">
