@@ -81,27 +81,44 @@ const App: React.FC = () => {
   const handleUpdateApiKey = async (newKey: string) => {
     if (!currentUser?.id) return;
     
+    // Using upsert in case the profile record doesn't exist yet
     const { error: updateError } = await supabase
       .from('profiles')
-      .update({ gemini_api_key: newKey, updated_at: new Date().toISOString() })
-      .eq('id', currentUser.id);
+      .upsert({ 
+        id: currentUser.id,
+        gemini_api_key: newKey, 
+        updated_at: new Date().toISOString() 
+      });
 
     if (updateError) {
-      setError(`Erro ao salvar chave API: ${updateError.message}`);
+      if (updateError.message.includes('schema cache')) {
+        setError("A tabela 'profiles' não foi encontrada no seu Supabase. Por favor, execute o script SQL contido no arquivo supabase_schema.sql no painel SQL do seu projeto Supabase.");
+      } else {
+        setError(`Erro ao salvar chave API: ${updateError.message}`);
+      }
     } else {
       setCurrentUser(prev => prev ? { ...prev, geminiApiKey: newKey } : null);
+      // Optional: show a success message or clear error
+      setError(null);
     }
   };
 
   // Auth State Listener
   useEffect(() => {
     // Check active sessions and sets the user
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('gemini_api_key')
+          .eq('id', session.user.id)
+          .single();
+
         setCurrentUser({
           id: session.user.id,
           name: session.user.user_metadata.full_name || 'Usuário',
           email: session.user.email || '',
+          geminiApiKey: profile?.gemini_api_key
         });
       }
     });
@@ -109,10 +126,18 @@ const App: React.FC = () => {
     // Listen for changes on auth state (sign in, sign out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
+        // Fetch profile
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('gemini_api_key')
+          .eq('id', session.user.id)
+          .single();
+
         setCurrentUser({
           id: session.user.id,
           name: session.user.user_metadata.full_name || 'Usuário',
           email: session.user.email || '',
+          geminiApiKey: profile?.gemini_api_key
         });
       } else {
         setCurrentUser(null);
