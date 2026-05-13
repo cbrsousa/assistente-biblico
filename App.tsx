@@ -324,11 +324,15 @@ const App: React.FC = () => {
     
     if (prompt === '__DAILY_DEVOTIONAL_REQUEST__') {
         userMessage.text = "Gerar um devocional diário.";
-        finalPrompt = `Gere um devocional diário conciso e inspirador. O devocional deve incluir:
-1.  **Um Versículo Chave**: Um versículo bíblico como foco principal.
-2.  **Uma Meditação**: Uma reflexão de 2-3 parágrafos sobre o versículo, explicando seu significado e relevância.
-3.  **Uma Oração Curta**: Uma breve oração relacionada ao tema da meditação.
-Tudo deve estar alinhado com a Doutrina Batista Renovada e Carismática.`;
+        finalPrompt = `Gere um devocional diário rico em detalhes e inspirador. Siga rigorosamente a Doutrina Batista Renovada e Carismática. O devocional deve incluir:
+
+1.  **Versículo Chave**: Um versículo bíblico central para o dia.
+2.  **Contexto Histórico**: Uma explicação breve sobre o contexto em que o versículo foi escrito (quem escreveu, para quem, em que situação).
+3.  **Meditação Teológica**: Uma reflexão profunda sobre o significado espiritual do texto, destacando a soberania de Deus e a obra do Espírito Santo.
+4.  **Aplicação Prática**: Como aplicar este ensinamento na vida cotidiana de forma concreta.
+5.  **Oração do Dia**: Uma oração fervorosa relacionada ao tema.
+
+Mantenha um tom acolhedor e encorajador.`;
     }
     else if (prompt.startsWith('__GET_ORIGINAL_MEANING__:')) {
         const word = prompt.substring('__GET_ORIGINAL_MEANING__:'.length);
