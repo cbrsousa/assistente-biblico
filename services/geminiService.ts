@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import type { Message, ChatMode, Source } from '../types';
 
 let ai: GoogleGenAI | null = null;
@@ -65,16 +65,16 @@ export const generateResponse = async (
   const ai = getAiInstance();
 
   const modelConfig = {
-    standard: { name: 'gemini-1.5-flash', config: {} },
-    fast: { name: 'gemini-1.5-flash', config: {} },
+    standard: { name: 'gemini-3-flash-preview', config: {} },
+    fast: { name: 'gemini-3.1-flash-lite', config: {} },
     deepThought: {
-      name: 'gemini-2.0-flash-thinking-exp',
+      name: 'gemini-3-flash-preview',
       config: {
-        thinkingConfig: { includeThoughts: true },
+        thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
       }
     },
     webSearch: { 
-      name: 'gemini-1.5-flash', 
+      name: 'gemini-3-flash-preview', 
       config: { tools: [{ googleSearch: {} }] }
     }
   };
