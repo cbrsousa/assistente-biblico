@@ -22,6 +22,9 @@ export const supabase = (supabaseUrl && supabaseAnonKey)
       })
     } as any;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Supabase credentials are missing. The app will work in offline mode without cloud storage.');
+if (!supabaseUrl) {
+  console.error('Supabase URL is missing! Please add VITE_SUPABASE_URL to your environment variables.');
+}
+if (!supabaseAnonKey) {
+  console.warn('Supabase Anon Key is missing. The app will work in offline mode without cloud storage.');
 }

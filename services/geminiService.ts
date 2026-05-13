@@ -44,7 +44,7 @@ export const generateResponse = async (
 
     const modelConfig: Record<string, { name: string, config: any }> = {
       standard: { name: 'gemini-3-flash-preview', config: {} },
-      fast: { name: 'gemini-3-flash-preview', config: {} },
+      fast: { name: 'gemini-3.1-flash-lite', config: {} },
       deepThought: {
         name: 'gemini-3.1-pro-preview',
         config: {}
@@ -75,7 +75,7 @@ export const generateResponse = async (
         });
 
         let fullText = "";
-        let finalResponse: any = null;
+        let finalChunk: any = null;
 
         for await (const chunk of response) {
             const textChunk = chunk.text;
@@ -83,10 +83,10 @@ export const generateResponse = async (
                 fullText += textChunk;
                 onStreamUpdate(textChunk);
             }
-            finalResponse = chunk; // Last chunk should contain metadata if available
+            finalChunk = chunk;
         }
         
-        const sources = finalResponse?.candidates?.[0]?.groundingMetadata?.groundingChunks?.map((chunk: any) => {
+        const sources = finalChunk?.candidates?.[0]?.groundingMetadata?.groundingChunks?.map((chunk: any) => {
             if (chunk.web) {
                 return { title: chunk.web.title, url: chunk.web.uri };
             }
@@ -113,15 +113,20 @@ export const generateResponse = async (
   } catch (error: any) {
     console.error("Gemini API Error:", error);
     const message = error.message || String(error);
+    
     if (message.includes('API key not valid')) {
-        throw new Error("Chave de API inválida. Verifique se a chave está correta em Configurações > Segredos.");
+        throw new Error("Chave de API inválida (400/403). Verifique se a chave está configurada corretamente em Configurações > Segredos.");
     }
     if (message.includes('model not found') || message.includes('404')) {
-        throw new Error("Modelo não encontrado ou indisponível. Selecione outro modo de conversa.");
+        throw new Error("Modelo não encontrado ou indisponível (404). Selecione outro modo de conversa ou verifique se sua chave tem acesso ao Gemini 3.");
     }
     if (message.includes('quota') || message.includes('429')) {
-        throw new Error("Cota de uso excedida (429). Tente novamente em alguns minutos ou use uma chave de API com faturamento ativado.");
+        throw new Error("Cota de uso excedida (429). Tente novamente em alguns minutos ou use uma chave de API com faturamento ativado (Paid Tier).");
     }
-    throw new Error(message || "Ocorreu um erro ao processar sua solicitação pela API do Gemini.");
+    if (message.includes('safety')) {
+        throw new Error("A resposta foi bloqueada pelos filtros de segurança do Google (Hate Speech/Harassment/etc). Tente reformular sua pergunta.");
+    }
+    
+    throw new Error(`Erro na API do Gemini: ${message}`);
   }
 };
