@@ -23,8 +23,8 @@ export const supabase = (supabaseUrl && supabaseAnonKey)
     } as any;
 
 if (!supabaseUrl) {
-  console.error('Supabase URL is missing! Please add VITE_SUPABASE_URL to your environment variables.');
+  console.error('URL do Supabase não encontrada! Por favor, adicione VITE_SUPABASE_URL às suas variáveis de ambiente.');
 }
 if (!supabaseAnonKey) {
-  console.warn('Supabase Anon Key is missing. The app will work in offline mode without cloud storage.');
+  console.warn('Chave Anon do Supabase não encontrada. O aplicativo funcionará em modo offline sem armazenamento na nuvem.');
 }

@@ -127,6 +127,10 @@ export const generateResponse = async (
         throw new Error("A resposta foi bloqueada pelos filtros de segurança do Google (Hate Speech/Harassment/etc). Tente reformular sua pergunta.");
     }
     
+    if (message.includes('Failed to call') || message.includes('fetch')) {
+        throw new Error("Falha ao conectar com a API do Gemini. Verifique sua conexão ou a validade da chave de API.");
+    }
+    
     throw new Error(`Erro na API do Gemini: ${message}`);
   }
 };

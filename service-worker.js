@@ -1,6 +1,6 @@
-const CACHE_NAME = 'biblical-chatbot-v5';
-// URLs to cache when the service worker is installed.
-// Paths are absolute from the root.
+const CACHE_NAME = 'assistente-biblico-v5';
+// URLs para armazenar em cache quando o service worker é instalado.
+// Os caminhos são absolutos a partir da raiz.
 const URLS_TO_CACHE = [
   '/',
   '/index.html',
@@ -11,11 +11,11 @@ const URLS_TO_CACHE = [
 
 // Evento de instalação: armazena o shell do aplicativo em cache
 self.addEventListener('install', (event) => {
-  self.skipWaiting(); // Activate new service worker as soon as it's finished installing
+  self.skipWaiting(); // Ativa o novo service worker assim que terminar a instalação
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('Opened cache');
+        console.log('Cache aberto');
         return cache.addAll(URLS_TO_CACHE);
       })
   );
@@ -33,7 +33,7 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
-    }).then(() => self.clients.claim()) // Take control of all open clients
+    }).then(() => self.clients.claim()) // Assume o controle de todos os clientes abertos
   );
 });
 
@@ -85,7 +85,7 @@ self.addEventListener('fetch', (event) => {
 
             caches.open(CACHE_NAME)
               .then((cache) => {
-                // Only cache basic responses (from our origin) to avoid caching opaque responses from other origins
+                // Armazena apenas respostas básicas (da nossa origem) para evitar o armazenamento em cache de respostas opacas de outras origens
                 if (response.type === 'basic') {
                   cache.put(event.request, responseToCache);
                 }

@@ -98,9 +98,9 @@ const App: React.FC = () => {
       });
 
     if (updateError) {
-      console.warn("Could not save to Supabase, but key is saved in localStorage:", updateError);
-      // We don't want to nag the user with a permanent error if it's just a missing table
-      // but we should still let them know in a less intrusive way if it's a real error.
+      console.warn("Não foi possível salvar no Supabase, mas a chave foi salva localmente:", updateError);
+      // Não queremos incomodar o usuário com um erro permanente se for apenas uma tabela ausente,
+      // mas ainda assim devemos informá-lo de forma menos intrusiva se for um erro real.
       if (updateError.message.includes('schema cache')) {
         console.log("A tabela 'profiles' não foi encontrada no Supabase. Usando armazenamento local.");
       } else {
@@ -210,7 +210,7 @@ const App: React.FC = () => {
     const loadUserData = async () => {
       if (!currentUser?.id) return;
 
-      // Load Profile (including Gemini API Key)
+      // Carregar Perfil (incluindo a Chave de API do Gemini)
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -218,7 +218,7 @@ const App: React.FC = () => {
         .single();
 
       if (profileError && profileError.code !== 'PGRST116') {
-        console.error('Error loading profile:', profileError);
+        console.error('Erro ao carregar perfil:', profileError);
       } else if (profileData) {
         setCurrentUser(prev => ({
           ...prev!,
@@ -227,7 +227,7 @@ const App: React.FC = () => {
         }));
       }
 
-      // Load Messages
+      // Carregar Mensagens
       const { data: messagesData, error: messagesError } = await supabase
         .from('messages')
         .select('*')
@@ -235,7 +235,7 @@ const App: React.FC = () => {
         .order('created_at', { ascending: true });
 
       if (messagesError) {
-        console.error('Error loading messages:', messagesError);
+        console.error('Erro ao carregar mensagens:', messagesError);
       } else if (messagesData) {
         setMessages(messagesData.map(m => ({
           id: m.id,
@@ -245,14 +245,14 @@ const App: React.FC = () => {
         })));
       }
 
-      // Load Bookmarks
+      // Carregar Favoritos
       const { data: bookmarksData, error: bookmarksError } = await supabase
         .from('bookmarks')
         .select('*')
         .eq('user_id', currentUser.id);
 
       if (bookmarksError) {
-        console.error('Error loading bookmarks:', bookmarksError);
+        console.error('Erro ao carregar favoritos:', bookmarksError);
       } else if (bookmarksData) {
         setBookmarks(bookmarksData.map(b => ({
           id: b.id,
@@ -317,7 +317,7 @@ const App: React.FC = () => {
         role: userMessage.role,
         text: userMessage.text,
       }).then(({ error }) => {
-        if (error) console.error('Error saving user message:', error);
+        if (error) console.error('Erro ao salvar mensagem do usuário:', error);
       });
     }
     
@@ -458,7 +458,7 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
           text: finalBotResponse.text,
           sources: finalBotResponse.sources,
         }).then(({ error }) => {
-          if (error) console.error('Error saving bot message:', error);
+          if (error) console.error('Erro ao salvar mensagem do assistente:', error);
         });
       }
 
@@ -479,7 +479,7 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
         // Remove from Supabase
         if (currentUser?.id) {
           supabase.from('bookmarks').delete().eq('id', message.id).then(({ error }) => {
-            if (error) console.error('Error removing bookmark:', error);
+            if (error) console.error('Erro ao remover favorito:', error);
           });
         }
         return prev.filter(b => b.id !== message.id);
@@ -491,7 +491,7 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
             ...newBookmark,
             user_id: currentUser.id
           }).then(({ error }) => {
-            if (error) console.error('Error saving bookmark:', error);
+            if (error) console.error('Erro ao salvar favorito:', error);
           });
         }
         return [...prev, newBookmark];
@@ -502,7 +502,7 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
   const handleRemoveBookmark = useCallback((bookmarkId: string) => {
     if (currentUser?.id) {
       supabase.from('bookmarks').delete().eq('id', bookmarkId).then(({ error }) => {
-        if (error) console.error('Error removing bookmark:', error);
+        if (error) console.error('Erro ao remover favorito:', error);
       });
     }
     setBookmarks(prev => prev.filter(b => b.id !== bookmarkId));
@@ -511,7 +511,7 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
   const handleUpdateBookmarkNote = useCallback((bookmarkId: string, notes: string) => {
     if (currentUser?.id) {
       supabase.from('bookmarks').update({ notes }).eq('id', bookmarkId).then(({ error }) => {
-        if (error) console.error('Error updating bookmark note:', error);
+        if (error) console.error('Erro ao atualizar nota do favorito:', error);
       });
     }
     setBookmarks(prev => prev.map(b => b.id === bookmarkId ? { ...b, notes } : b));
