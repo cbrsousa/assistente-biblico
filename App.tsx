@@ -324,15 +324,32 @@ const App: React.FC = () => {
     
     if (prompt === '__DAILY_DEVOTIONAL_REQUEST__') {
         userMessage.text = "Gerar um devocional diário.";
-        finalPrompt = `Gere um devocional diário rico em detalhes e inspirador. Siga rigorosamente a Doutrina Batista Renovada e Carismática. O devocional deve incluir:
+        finalPrompt = `Gere um devocional diário profundo, rico em detalhes e espiritualmente edificante. Siga rigorosamente a Doutrina Batista Renovada e Carismática. O devocional deve ser estruturado da seguinte forma usando Markdown:
 
-1.  **Versículo Chave**: Um versículo bíblico central para o dia.
-2.  **Contexto Histórico**: Uma explicação breve sobre o contexto em que o versículo foi escrito (quem escreveu, para quem, em que situação).
-3.  **Meditação Teológica**: Uma reflexão profunda sobre o significado espiritual do texto, destacando a soberania de Deus e a obra do Espírito Santo.
-4.  **Aplicação Prática**: Como aplicar este ensinamento na vida cotidiana de forma concreta.
-5.  **Oração do Dia**: Uma oração fervorosa relacionada ao tema.
+# Devocional Diário: [Título Inspirador]
 
-Mantenha um tom acolhedor e encorajador.`;
+### 📖 Versículo Chave
+**[Citação Bíblica]** - "[Texto do versículo]"
+
+### 🏛️ Contexto Histórico e Literário
+[Uma explicação detalhada sobre quem escreveu, o momento histórico, o destinatário original e o propósito da passagem.]
+
+### 🔍 Significado Original (Insights Linguísticos)
+[Análise de 1 ou 2 palavras-chave no original Grego ou Hebraico, fornecendo a transliteração e o significado profundo que amplia a compreensão do texto.]
+
+### 🔥 Meditação Teológica (Palavra Rhema)
+[Uma reflexão profunda sobre o significado espiritual do texto, com foco na soberania de Deus, na obra redentora de Cristo e na atuação dinâmica do Espírito Santo na vida do crente.]
+
+### 🔗 Referências Cruzadas
+[Liste 2 ou 3 versículos que complementam ou reforçam o ensino desta passagem.]
+
+### 🛠️ Aplicação Prática e Desafio
+[Orientações concretas de como viver esta verdade hoje. Inclua um pequeno "Desafio de Fé" para o leitor colocar em prática.]
+
+### 🙏 Oração do Dia
+[Uma oração fervorosa, cheia de fé e gratidão, convidando a presença do Espírito Santo.]
+
+Mantenha um tom pastoral, acolhedor e encorajador.`;
     }
     else if (prompt.startsWith('__GET_ORIGINAL_MEANING__:')) {
         const word = prompt.substring('__GET_ORIGINAL_MEANING__:'.length);

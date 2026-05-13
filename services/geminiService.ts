@@ -73,10 +73,6 @@ export const generateResponse = async (
         thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
       }
     },
-    webSearch: { 
-      name: 'gemini-3-flash-preview', 
-      config: { tools: [{ googleSearch: {} }] }
-    }
   };
 
   const { name: modelName, config } = modelConfig[mode];
@@ -113,24 +109,6 @@ export const generateResponse = async (
       }
     }
 
-    if (mode === 'webSearch') {
-        const groundingMetadata = chunk.candidates?.[0]?.groundingMetadata;
-        const chunkSources = groundingMetadata?.groundingChunks
-            ?.map((c: any) => ({
-                uri: c.web?.uri || '',
-                title: c.web?.title || 'Source',
-            }))
-            .filter((s: Source) => s.uri);
-      
-        if (chunkSources) {
-            for (const source of chunkSources) {
-                if (!sourceUris.has(source.uri)) {
-                    sources.push(source);
-                    sourceUris.add(source.uri);
-                }
-            }
-        }
-    }
   }
   
   return { text: fullText, sources: sources.length > 0 ? sources : undefined };

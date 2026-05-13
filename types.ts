@@ -1,7 +1,7 @@
 
 export type Role = 'user' | 'model';
 
-export type ChatMode = 'standard' | 'fast' | 'deepThought' | 'webSearch';
+export type ChatMode = 'standard' | 'fast' | 'deepThought';
 
 export interface Source {
   title: string;
