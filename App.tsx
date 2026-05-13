@@ -586,6 +586,7 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
           onLogout={handleLogout}
           onOpenApiKeySettings={() => setIsShowingApiKeyScreen(true)}
           userName={currentUser.name}
+          hasEnvKey={!!process.env.GEMINI_API_KEY || !!process.env.API_KEY}
         />
         <div className="flex-1 flex overflow-hidden">
           <main className="flex-1 flex flex-col overflow-hidden bg-gray-200 dark:bg-gray-800">

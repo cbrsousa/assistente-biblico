@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   oldTestamentChronological, 
   newTestamentChronological, 
@@ -7,6 +7,7 @@ import {
   allBooksAlphabetical,
   bibleBookChapters 
 } from '../data/bibleBooks';
+import { verses } from '../data/verses';
 import type { FontSize } from '../App';
 
 type SortMode = 'canonical' | 'chronological' | 'alphabetical' | 'search';
@@ -84,6 +85,14 @@ const BibleNavPanel: React.FC<BibleNavPanelProps> = ({ isOpen, onClose, onSendMe
     const [isNewTestamentOpen, setIsNewTestamentOpen] = useState(true);
     const [sortMode, setSortMode] = useState<SortMode>('canonical');
     const [searchQuery, setSearchQuery] = useState('');
+    const [verseOfDay, setVerseOfDay] = useState('');
+
+    useEffect(() => {
+      // Get a random verse on mount
+      if (verses.length > 0) {
+        setVerseOfDay(verses[Math.floor(Math.random() * verses.length)]);
+      }
+    }, []);
 
     const handleSearch = (e: React.FormEvent) => {
       e.preventDefault();
@@ -172,6 +181,32 @@ const BibleNavPanel: React.FC<BibleNavPanelProps> = ({ isOpen, onClose, onSendMe
                   </svg>
                 </button>
               </form>
+
+              {verseOfDay && (
+                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg">
+                  <h4 className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase mb-1 flex justify-between items-center">
+                    Versículo do Dia
+                    <button 
+                      onClick={() => setVerseOfDay(verses[Math.floor(Math.random() * verses.length)])}
+                      className="hover:rotate-180 transition-transform duration-500"
+                      title="Mudar versículo"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.4 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    </button>
+                  </h4>
+                  <p className="text-xs italic text-gray-700 dark:text-gray-300 leading-relaxed">
+                    {verseOfDay}
+                  </p>
+                  <button 
+                    onClick={() => onSendMessage(`Me explique o versículo: ${verseOfDay}`)}
+                    className="mt-2 text-[10px] font-semibold text-blue-700 dark:text-blue-300 hover:underline"
+                  >
+                    Estudar este versículo
+                  </button>
+                </div>
+              )}
             </header>
 
             <main className="flex-1 overflow-y-auto p-4">

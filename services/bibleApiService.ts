@@ -1,4 +1,3 @@
-
 /**
  * bibleApiService.ts
  * Servico para interacao com APIs biblicas gratuitas.
@@ -6,9 +5,6 @@
 
 // URL base para a API Bible-api.com (Gratuita, sem chave, versao Almeida)
 const BIBLE_API_URL = 'https://bible-api.com/';
-
-// URL base para A Biblia Digital (Requer token)
-const A_BIBLIA_DIGITAL_URL = 'https://www.abibliadigital.com.br/api/';
 
 /**
  * Interface para representar um versiculo retornado pela API.
@@ -26,11 +22,18 @@ export interface BibleVerse {
  */
 export const fetchVerseFromBibleApi = async (reference: string): Promise<BibleVerse[] | null> => {
   try {
-    const response = await fetch(`${BIBLE_API_URL}${encodeURIComponent(reference)}?translation=almeida`);
+    // Tenta primeiro com Almeida (Ferreira Almeida)
+    let response = await fetch(`${BIBLE_API_URL}${encodeURIComponent(reference)}?translation=almeida`);
+    
+    // Se falhar ou nao encontrar, tenta sem especificar versao
+    if (!response.ok) {
+       response = await fetch(`${BIBLE_API_URL}${encodeURIComponent(reference)}`);
+    }
+
     if (!response.ok) return null;
     
     const data = await response.json();
-    if (data.verses) {
+    if (data.verses && data.verses.length > 0) {
       return data.verses.map((v: any) => ({
         book: data.reference.split(' ')[0],
         chapter: v.chapter,
@@ -41,35 +44,6 @@ export const fetchVerseFromBibleApi = async (reference: string): Promise<BibleVe
     return null;
   } catch (error) {
     console.error('Erro ao buscar na Bible API:', error);
-    return null;
-  }
-};
-
-/**
- * Exemplo de busca na A Biblia Digital (Requer token no .env)
- * Para usar: VITE_BIBLE_TOKEN=seu_token_aqui
- */
-export const fetchVerseFromABibliaDigital = async (version: string, book: string, chapter: number, verse?: number): Promise<any> => {
-  const token = import.meta.env.VITE_BIBLE_TOKEN;
-  if (!token) {
-    console.warn('Token da A Biblia Digital nao configurado.');
-    return null;
-  }
-
-  const endpoint = verse 
-    ? `${A_BIBLIA_DIGITAL_URL}verses/${version}/${book}/${chapter}/${verse}`
-    : `${A_BIBLIA_DIGITAL_URL}verses/${version}/${book}/${chapter}`;
-
-  try {
-    const response = await fetch(endpoint, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    if (!response.ok) return null;
-    return await response.json();
-  } catch (error) {
-    console.error('Erro ao buscar na A Biblia Digital:', error);
     return null;
   }
 };
