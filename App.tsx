@@ -72,7 +72,9 @@ const App: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    if (supabase.auth && typeof supabase.auth.signOut === 'function') {
+      await supabase.auth.signOut();
+    }
     setCurrentUser(null);
     setMessages([]);
     setBookmarks([]);

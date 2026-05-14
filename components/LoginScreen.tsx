@@ -29,6 +29,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     }
 
     try {
+      console.log('Iniciando autenticação...');
+      if (!supabase.auth || typeof supabase.auth.signUp !== 'function') {
+        console.error('Supabase Auth ou signUp não encontrado!', supabase);
+        throw new Error('O serviço de autenticação não está disponível no momento. Verifique as configurações do Supabase.');
+      }
+
       if (isRegistering) {
         // Create new account with Supabase
         const { data, error: signUpError } = await supabase.auth.signUp({
@@ -54,6 +60,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         }
       } else {
         // Sign in with Supabase
+        if (typeof supabase.auth.signInWithPassword !== 'function') {
+          throw new Error('O serviço de login não está disponível no momento.');
+        }
         const { data, error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password,
