@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { BookOpen } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { BookOpen, AlertCircle } from 'lucide-react';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { User } from '../types';
 
 interface LoginScreenProps {
@@ -83,7 +83,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
       console.error('Supabase auth error:', err);
       let errorMessage = err.message || 'Ocorreu um erro na autenticação.';
       
-      if (errorMessage.includes('Email rate limit exceeded')) {
+      if (errorMessage.includes('Configuração do Supabase ausente')) {
+        errorMessage = 'A configuração do Supabase está ausente. Por favor, adicione as chaves VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no menu Configurações do AI Studio (ícone de engrenagem) para habilitar o sistema de login.';
+      } else if (errorMessage.includes('Email rate limit exceeded')) {
         errorMessage = 'Limite de e-mails do servidor excedido. Isso acontece porque o sistema gratuito do Supabase tem limites estritos. Por favor: 1) Verifique sua caixa de entrada e SPAM se já tentou se cadastrar; 2) Se você já criou a conta, tente apenas fazer LOGIN; 3) Aguarde de 15 a 30 minutos para tentar novamente.';
       } else if (errorMessage.includes('Invalid login credentials')) {
         errorMessage = 'E-mail ou senha incorretos. Verifique se digitou corretamente ou se já confirmou seu cadastro por e-mail.';
@@ -115,6 +117,17 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         </div>
 
         <div className="p-8">
+            {!isSupabaseConfigured && (
+                <div className="mb-6 p-3 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-md flex items-start space-x-3">
+                    <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                        <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">Supabase não configurado</p>
+                        <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                            Este aplicativo requer o Supabase. Vá em <strong>Configurações</strong> e adicione as variáveis <code>VITE_SUPABASE_URL</code> e <code>VITE_SUPABASE_ANON_KEY</code>.
+                        </p>
+                    </div>
+                </div>
+            )}
             <form onSubmit={handleSubmit} className="space-y-6">
                 {isRegistering && (
                     <div>

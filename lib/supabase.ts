@@ -5,7 +5,9 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 // Pre-define a dummy client if config is missing to avoid crashing on module load
-export const supabaseClient = (supabaseUrl && supabaseAnonKey) 
+export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
+
+export const supabaseClient = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey)
   : {
       auth: {
