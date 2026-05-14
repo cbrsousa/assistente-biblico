@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ModeSelector from './ModeSelector';
 import UserCounter from './UserCounter';
-import { BookOpen, Settings, LogOut, Moon, Sun, Monitor, Bookmark, Menu, ChevronDown, Key } from 'lucide-react';
 import type { ChatMode } from '../types';
 import type { FontSize, Theme } from '../App';
 
@@ -18,11 +17,8 @@ interface HeaderProps {
   isMobile: boolean;
   isDesktopLayout: boolean;
   onLogout: () => void;
+  onOpenApiKeySettings: () => void;
   userName?: string;
-  whatsapp?: string;
-  geminiApiKey?: string;
-  onUpdateApiKey: (key: string) => Promise<void>;
-  onUpdateProfile: (updates: Partial<User>) => Promise<void>;
 }
 
 const Header: React.FC<HeaderProps> = ({ 
@@ -37,26 +33,11 @@ const Header: React.FC<HeaderProps> = ({
   isMobile,
   isDesktopLayout,
   onLogout,
-  userName,
-  whatsapp,
-  geminiApiKey,
-  onUpdateApiKey,
-  onUpdateProfile
+  onOpenApiKeySettings,
+  userName
 }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [tempApiKey, setTempApiKey] = useState(geminiApiKey || '');
-  const [tempWhatsapp, setTempWhatsapp] = useState(whatsapp || '');
-  const [isSavingKey, setIsSavingKey] = useState(false);
-  const [isSavingWhatsapp, setIsSavingWhatsapp] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setTempApiKey(geminiApiKey || '');
-  }, [geminiApiKey]);
-
-  useEffect(() => {
-    setTempWhatsapp(whatsapp || '');
-  }, [whatsapp]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -93,7 +74,7 @@ const Header: React.FC<HeaderProps> = ({
           className="p-2 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mr-2"
           aria-label="Abrir navegação da Bíblia"
         >
-          <BookOpen className="h-6 w-6" />
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
         </button>
         <h1 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-100 text-center sm:text-left">
           {isMobile ? 'Assistente CBR' : 'Assistente Bíblico CBR'}
@@ -109,7 +90,7 @@ const Header: React.FC<HeaderProps> = ({
             className="p-2 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             aria-label="Abrir versículos salvos"
             >
-            <Bookmark className="h-6 w-6" />
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>
             </button>
         )}
 
@@ -119,7 +100,7 @@ const Header: React.FC<HeaderProps> = ({
             className="p-2 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             aria-label="Abrir configurações"
           >
-            <Settings className="h-6 w-6" />
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066 2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
           </button>
 
           {isSettingsOpen && (
@@ -160,97 +141,21 @@ const Header: React.FC<HeaderProps> = ({
 
               <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
 
-              <div className="px-4 py-2">
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider font-semibold">Seu WhatsApp</p>
-                <div className="flex flex-col space-y-2">
-                    <input
-                        type="tel"
-                        value={tempWhatsapp}
-                        onChange={(e) => setTempWhatsapp(e.target.value)}
-                        placeholder="(00) 00000-0000"
-                        className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none"
-                    />
-                    <button
-                        onClick={async () => {
-                            setIsSavingWhatsapp(true);
-                            await onUpdateProfile({ whatsapp: tempWhatsapp });
-                            setIsSavingWhatsapp(false);
-                        }}
-                        disabled={isSavingWhatsapp}
-                        className={`w-full py-1.5 text-xs font-semibold text-white rounded shadow-sm transition-all ${
-                            isSavingWhatsapp ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 active:scale-95'
-                        }`}
-                    >
-                        {isSavingWhatsapp ? 'Salvando...' : 'Atualizar WhatsApp'}
-                    </button>
-                </div>
-              </div>
-
-              <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
-
-              <div className="px-4 py-2">
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider font-semibold">Chave Gemini API</p>
-                <div className="flex flex-col space-y-2">
-                    <input
-                        type="password"
-                        value={tempApiKey}
-                        onChange={(e) => setTempApiKey(e.target.value)}
-                        placeholder="Cole aqui sua chave (AI Studio)..."
-                        className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none"
-                    />
-                    <button
-                        onClick={async () => {
-                            const trimmedKey = tempApiKey.trim();
-                            if (!trimmedKey) {
-                                alert("Por favor, insira uma chave sólida.");
-                                return;
-                            }
-                            setIsSavingKey(true);
-                            await onUpdateApiKey(trimmedKey);
-                            setIsSavingKey(false);
-                            // Brief feedback
-                            const btn = document.activeElement as HTMLButtonElement;
-                            const originalText = btn.innerText;
-                            btn.innerText = "✓ Salvo!";
-                            btn.classList.replace('bg-green-600', 'bg-blue-600');
-                            setTimeout(() => {
-                                btn.innerText = originalText;
-                                btn.classList.replace('bg-blue-600', 'bg-green-600');
-                                setIsSettingsOpen(false);
-                            }, 1500);
-                        }}
-                        disabled={isSavingKey}
-                        className={`w-full py-1.5 text-xs font-semibold text-white rounded shadow-sm transition-all ${
-                            isSavingKey ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 active:scale-95'
-                        }`}
-                    >
-                        {isSavingKey ? 'Salvando...' : 'Salvar no Perfil'}
-                    </button>
-                    <p className="text-[10px] text-gray-400 leading-tight">
-                        Sua chave será armazenada no seu perfil do Supabase (e localmente) para uso futuro.
-                    </p>
-                </div>
-              </div>
-
-              <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
-
               <button
-                onClick={async () => {
-                   if (window.aistudio?.openSelectKey) {
-                     await window.aistudio.openSelectKey();
-                   } else {
-                     alert("Por favor, acesse Configurações > Segredos no menu lateral do AI Studio para configurar sua GEMINI_API_KEY.");
-                   }
-                   setIsSettingsOpen(false);
+                onClick={() => {
+                    onOpenApiKeySettings();
+                    setIsSettingsOpen(false);
                 }}
                 className="w-full text-left px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
               >
-                <Key className="h-4 w-4 mr-2" />
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                </svg>
                 Configurar Chave API
               </button>
-
-              <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
               
+              <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+
               <button
                 onClick={() => {
                     onLogout();
@@ -258,7 +163,9 @@ const Header: React.FC<HeaderProps> = ({
                 }}
                 className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
               >
-                <LogOut className="h-4 w-4 mr-2" />
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
                 Sair
               </button>
             </div>

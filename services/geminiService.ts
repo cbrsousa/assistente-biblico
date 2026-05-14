@@ -1,5 +1,37 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import type { Message, ChatMode, Source } from '../types';
+
+let ai: GoogleGenAI | null = null;
+
+export const initializeAi = (apiKey: string): boolean => {
+  if (!apiKey) {
+    console.error("Chave de API ausente para inicialização.");
+    return false;
+  }
+  try {
+    // Re-initializing is fine and necessary if the key changes.
+    ai = new GoogleGenAI({ apiKey });
+    return true;
+  } catch (e) {
+    console.error("Falha ao inicializar GoogleGenAI. Verifique se a chave de API é válida.", e);
+    ai = null;
+    return false;
+  }
+};
+
+
+/**
+ * A helper function to get the initialized AI instance or throw a user-friendly error.
+ * This is called before any API request is made.
+ * @returns The initialized GoogleGenAI instance.
+ */
+const getAiInstance = (): GoogleGenAI => {
+    if (!ai) {
+        throw new Error("A API do Gemini não foi inicializada. Por favor, forneça uma chave de API válida nas configurações ou ambiente.");
+    }
+    return ai;
+}
+
 
 const SYSTEM_INSTRUCTION = `Você é o Assistente Virtual Bíblico, um chatbot avançado de estudos bíblicos. Seu propósito é funcionar como uma Bíblia de estudo avançada, fornecendo insights teológicos profundos, contexto histórico, explicações de significados originais em grego e hebraico e referências cruzadas com outras passagens das Escrituras. Quando questionado sobre o significado original de uma palavra, você deve fornecer sua forma no idioma original (grego ou hebraico), sua transliteração, sua definição principal e uma análise contextual detalhada de seu uso nas Escrituras.
 
@@ -24,113 +56,82 @@ interface GeminiResponse {
   sources?: Source[];
 }
 
-const generateAI = (apiKey?: string) => {
-    const key = apiKey || process.env.GEMINI_API_KEY || process.env.API_KEY || "";
-    if (!key) {
-        throw new Error("Chave de API não configurada. Por favor, adicione sua GEMINI_API_KEY no menu lateral (Configurações > Segredos) ou salve-a no seu perfil.");
-    }
-    return new GoogleGenAI({ apiKey: key });
-};
-
 export const generateResponse = async (
   prompt: string,
   mode: ChatMode,
   history: Message[],
-  onStreamUpdate?: (chunk: string) => void,
-  userApiKey?: string
+  onStreamUpdate?: (chunk: string) => void
 ): Promise<GeminiResponse> => {
-  try {
-    const ai = generateAI(userApiKey);
+  const ai = getAiInstance();
 
-    const modelConfig: Record<string, { name: string, config: any }> = {
-      standard: { name: 'gemini-3-flash-preview', config: {} },
-      fast: { name: 'gemini-3.1-flash-lite', config: {} },
-      deepThought: {
-        name: 'gemini-3.1-pro-preview',
-        config: {}
-      },
-    };
+  const modelConfig = {
+    standard: { name: 'gemini-3-flash-preview', config: {} },
+    fast: { name: 'gemini-3.1-flash-lite', config: {} },
+    deepThought: {
+      name: 'gemini-3-flash-preview',
+      config: {
+        thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
+      }
+    },
+    webSearch: { 
+      name: 'gemini-3-flash-preview', 
+      config: { tools: [{ googleSearch: {} }] }
+    }
+  };
 
-    const selected = modelConfig[mode] || modelConfig.standard;
+  const { name: modelName, config } = modelConfig[mode];
 
-    const contents = [
-      ...history.map((msg: any) => ({
-        role: msg.role === 'user' ? 'user' : 'model',
-        parts: [{ text: msg.text }]
-      })),
-      { role: 'user', parts: [{ text: prompt }] }
-    ];
+  const generationConfig = {
+    ...config,
+    systemInstruction: SYSTEM_INSTRUCTION,
+  };
 
-    const config = {
-      systemInstruction: SYSTEM_INSTRUCTION,
-      tools: [{ googleSearch: {} }],
-      ...selected.config
-    };
+  const contents = [...history.map(msg => ({
+    role: msg.role,
+    parts: [{ text: msg.text }]
+  })), {
+    role: 'user',
+    parts: [{ text: prompt }]
+  }];
 
-    if (onStreamUpdate) {
-        const response = await ai.models.generateContentStream({
-            model: selected.name,
-            contents: contents,
-            config: config
-        });
+  const responseStream = await ai.models.generateContentStream({
+    model: modelName,
+    contents,
+    config: generationConfig,
+  });
+  
+  let fullText = "";
+  const sources: Source[] = [];
+  const sourceUris = new Set<string>();
 
-        let fullText = "";
-        let finalChunk: any = null;
+  for await (const chunk of responseStream) {
+    const chunkText = chunk.text;
+    if (chunkText) {
+      fullText += chunkText;
+      if (onStreamUpdate) {
+        onStreamUpdate(chunkText);
+      }
+    }
 
-        for await (const chunk of response) {
-            const textChunk = chunk.text;
-            if (textChunk) {
-                fullText += textChunk;
-                onStreamUpdate(textChunk);
+    if (mode === 'webSearch') {
+        const groundingMetadata = chunk.candidates?.[0]?.groundingMetadata;
+        const chunkSources = groundingMetadata?.groundingChunks
+            ?.map((c: any) => ({
+                uri: c.web?.uri || '',
+                title: c.web?.title || 'Source',
+            }))
+            .filter((s: Source) => s.uri);
+      
+        if (chunkSources) {
+            for (const source of chunkSources) {
+                if (!sourceUris.has(source.uri)) {
+                    sources.push(source);
+                    sourceUris.add(source.uri);
+                }
             }
-            finalChunk = chunk;
         }
-        
-        const sources = finalChunk?.candidates?.[0]?.groundingMetadata?.groundingChunks?.map((chunk: any) => {
-            if (chunk.web) {
-                return { title: chunk.web.title, url: chunk.web.uri };
-            }
-            return null;
-        }).filter(Boolean) || [];
-
-        return { text: fullText, sources };
-    } else {
-        const response = await ai.models.generateContent({
-            model: selected.name,
-            contents: contents,
-            config: config
-        });
-
-        const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks?.map((chunk: any) => {
-            if (chunk.web) {
-                return { title: chunk.web.title, url: chunk.web.uri };
-            }
-            return null;
-        }).filter(Boolean) || [];
-
-        return { text: response.text || "", sources };
     }
-  } catch (error: any) {
-    console.error("Gemini API Error:", error);
-    const message = error.message || String(error);
-    
-    if (message.includes('API key not valid')) {
-        throw new Error("Chave de API inválida (400/403). Verifique se a chave está configurada corretamente em Configurações > Segredos.");
-    }
-    if (message.includes('model not found') || message.includes('404')) {
-        throw new Error("Modelo não encontrado ou indisponível (404). Selecione outro modo de conversa ou verifique se sua chave tem acesso ao Gemini 3.");
-    }
-    if (message.includes('quota') || message.includes('429')) {
-        throw new Error("Cota de uso excedida (429). Tente novamente em alguns minutos ou use uma chave de API com faturamento ativado (Paid Tier).");
-    }
-    if (message.includes('safety')) {
-        throw new Error("A resposta foi bloqueada pelos filtros de segurança do Google (Hate Speech/Harassment/etc). Tente reformular sua pergunta.");
-    }
-    
-    if (message.includes('Failed to call') || message.includes('fetch')) {
-        throw new Error("Falha ao conectar com a API do Gemini. Verifique sua conexão ou a validade da chave de API.");
-    }
-    
-    throw new Error(`Erro na API do Gemini: ${message}`);
   }
+  
+  return { text: fullText, sources: sources.length > 0 ? sources : undefined };
 };

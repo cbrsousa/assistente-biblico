@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { BookOpen, AlertCircle } from 'lucide-react';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 import type { User } from '../types';
 
 interface LoginScreenProps {
@@ -11,7 +10,6 @@ interface LoginScreenProps {
 const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   const [isRegistering, setIsRegistering] = useState(false);
   const [name, setName] = useState('');
-  const [whatsapp, setWhatsapp] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -22,19 +20,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     setError(null);
     setLoading(true);
 
-    if (!email || !password || (isRegistering && (!name || !whatsapp))) {
+    if (!email || !password || (isRegistering && !name)) {
       setError('Por favor, preencha todos os campos.');
       setLoading(false);
       return;
     }
 
     try {
-      console.log('Iniciando autenticação...');
-      if (!supabase.auth || typeof supabase.auth.signUp !== 'function') {
-        console.error('Supabase Auth ou signUp não encontrado!', supabase);
-        throw new Error('O serviço de autenticação não está disponível no momento. Verifique as configurações do Supabase.');
-      }
-
       if (isRegistering) {
         // Create new account with Supabase
         const { data, error: signUpError } = await supabase.auth.signUp({
@@ -43,7 +35,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
           options: {
             data: {
               full_name: name,
-              whatsapp: whatsapp,
             },
           },
         });
@@ -52,17 +43,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         
         if (data.user) {
           onLogin({ 
-            id: data.user.id,
-            name: data.user.user_metadata.full_name || name || 'Usuário', 
-            email: data.user.email || email,
-            whatsapp: data.user.user_metadata.whatsapp || whatsapp
+            name: data.user.user_metadata.full_name || 'Usuário', 
+            email: data.user.email || '' 
           });
         }
       } else {
         // Sign in with Supabase
-        if (typeof supabase.auth.signInWithPassword !== 'function') {
-          throw new Error('O serviço de login não está disponível no momento.');
-        }
         const { data, error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -72,34 +58,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
 
         if (data.user) {
           onLogin({ 
-            id: data.user.id,
             name: data.user.user_metadata.full_name || 'Usuário', 
-            email: data.user.email || '',
-            whatsapp: data.user.user_metadata.whatsapp
+            email: data.user.email || '' 
           });
         }
       }
     } catch (err: any) {
       console.error('Supabase auth error:', err);
-      let errorMessage = err.message || 'Ocorreu um erro na autenticação.';
-      
-      if (errorMessage.includes('Configuração do Supabase ausente')) {
-        errorMessage = 'A configuração do Supabase está ausente. Por favor, adicione as chaves VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no menu Configurações do AI Studio (ícone de engrenagem) para habilitar o sistema de login.';
-      } else if (errorMessage.includes('Email rate limit exceeded')) {
-        errorMessage = 'Limite de e-mails do servidor excedido. Isso acontece porque o sistema gratuito do Supabase tem limites estritos. Por favor: 1) Verifique sua caixa de entrada e SPAM se já tentou se cadastrar; 2) Se você já criou a conta, tente apenas fazer LOGIN; 3) Aguarde de 15 a 30 minutos para tentar novamente.';
-      } else if (errorMessage.includes('Invalid login credentials')) {
-        errorMessage = 'E-mail ou senha incorretos. Verifique se digitou corretamente ou se já confirmou seu cadastro por e-mail.';
-      } else if (errorMessage.includes('User already registered')) {
-        errorMessage = 'Este e-mail já está cadastrado. Tente entrar em vez de criar uma conta.';
-      } else if (errorMessage.includes('Database error saving new user')) {
-        errorMessage = 'Erro no banco de dados ao criar seu perfil. Isso geralmente ocorre se o WhatsApp foi adicionado mas a tabela do Supabase ainda não foi atualizada. Por favor, execute o script SQL de migração no seu painel do Supabase.';
-      }
-      
-      setError(errorMessage);
-      if (errorMessage.includes('Email rate limit exceeded') && isRegistering) {
-        // Sugere ir para o login se falhou o registro por excesso de e-mail
-        // (pode ser que a conta ja tenha sido criada mas o email falhou)
-      }
+      setError(err.message || 'Ocorreu um erro na autenticação.');
     } finally {
       setLoading(false);
     }
@@ -109,7 +75,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 px-4">
       <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden animate-fade-in-up border border-gray-200 dark:border-gray-700">
         <div className="px-8 py-6 bg-blue-600 dark:bg-blue-800 text-white text-center">
-            <BookOpen className="h-12 w-12 mx-auto mb-2" />
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-2" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M11.25 4.533A9.707 9.707 0 0 0 6 3a9.735 9.735 0 0 0-3.25.555.75.75 0 0 0-.5.707v14.25a.75.75 0 0 0 1 .707A9.707 9.707 0 0 0 6 18a9.735 9.735 0 0 0 3.25.555.75.75 0 0 0 .5-.707V5.24a.75.75 0 0 0-1-.707Z" />
+                <path d="M12.75 4.533A9.707 9.707 0 0 1 18 3a9.735 9.735 0 0 1 3.25.555.75.75 0 0 1 .5.707v14.25a.75.75 0 0 1-1 .707A9.707 9.707 0 0 1 18 18a9.735 9.735 0 0 1-3.25.555.75.75 0 0 1-.5-.707V5.24a.75.75 0 0 1 1-.707Z" />
+            </svg>
             <h2 className="text-2xl font-bold">Assistente Bíblico CBR</h2>
             <p className="text-blue-100 mt-1">
                 {isRegistering ? 'Crie sua conta' : 'Bem-vindo de volta'}
@@ -117,17 +86,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         </div>
 
         <div className="p-8">
-            {!isSupabaseConfigured && (
-                <div className="mb-6 p-3 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-md flex items-start space-x-3">
-                    <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-                    <div>
-                        <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">Supabase não configurado</p>
-                        <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
-                            Este aplicativo requer o Supabase. Vá em <strong>Configurações</strong> e adicione as variáveis <code>VITE_SUPABASE_URL</code> e <code>VITE_SUPABASE_ANON_KEY</code>.
-                        </p>
-                    </div>
-                </div>
-            )}
             <form onSubmit={handleSubmit} className="space-y-6">
                 {isRegistering && (
                     <div>
@@ -140,21 +98,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                             onChange={(e) => setName(e.target.value)}
                             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                             placeholder="Seu nome"
-                        />
-                    </div>
-                )}
-
-                {isRegistering && (
-                    <div>
-                        <label htmlFor="whatsapp" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">WhatsApp</label>
-                        <input
-                            id="whatsapp"
-                            type="tel"
-                            required
-                            value={whatsapp}
-                            onChange={(e) => setWhatsapp(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                            placeholder="(00) 00000-0000"
                         />
                     </div>
                 )}

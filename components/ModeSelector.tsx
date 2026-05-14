@@ -11,6 +11,7 @@ const modes: { id: ChatMode; name: string; description: string }[] = [
   { id: 'fast', name: 'Rápido', description: 'Respostas rápidas e contínuas.' },
   { id: 'standard', name: 'Padrão', description: 'Respostas equilibradas.' },
   { id: 'deepThought', name: 'Pensamento Profundo', description: 'Para consultas complexas.' },
+  { id: 'webSearch', name: 'Pesquisa Web', description: 'Baseado em resultados da web.' },
 ];
 
 const ModeSelector: React.FC<ModeSelectorProps> = ({ currentMode, onModeChange, isMobile }) => {

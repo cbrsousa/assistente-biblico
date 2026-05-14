@@ -1,9 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, X, Bookmark, SearchX } from 'lucide-react';
-import type { Bookmark as BookmarkType } from '../types';
+import type { Bookmark } from '../types';
 
 interface BookmarkItemProps {
-    bookmark: BookmarkType;
+    bookmark: Bookmark;
     onRemoveBookmark: (bookmarkId: string) => void;
     onUpdateBookmarkNote: (bookmarkId: string, notes: string) => void;
     onSendMessage: (prompt: string) => void;
@@ -83,7 +82,7 @@ const BookmarkItem: React.FC<BookmarkItemProps> = ({ bookmark, onRemoveBookmark,
 
 
 interface BookmarksPanelProps {
-  bookmarks: BookmarkType[];
+  bookmarks: Bookmark[];
   onRemoveBookmark: (bookmarkId: string) => void;
   onUpdateBookmarkNote: (bookmarkId: string, notes: string) => void;
   onSendMessage: (prompt: string) => void;
@@ -140,7 +139,9 @@ const BookmarksPanel: React.FC<BookmarksPanelProps> = ({
         <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
           <div className="relative">
             <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-              <Search className="h-5 w-5 text-gray-400" />
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
             </span>
             <input
               type="text"
@@ -156,7 +157,9 @@ const BookmarksPanel: React.FC<BookmarksPanelProps> = ({
         <main className="flex-1 overflow-y-auto p-6">
           {bookmarks.length === 0 ? (
             <div className="text-center py-12">
-              <Bookmark className="mx-auto h-12 w-12 text-gray-400" />
+              <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+              </svg>
               <h3 className="mt-2 text-lg font-medium text-gray-900 dark:text-gray-100">Nenhum versículo salvo</h3>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Clique no ícone de marcador em uma mensagem para salvá-la aqui.</p>
             </div>

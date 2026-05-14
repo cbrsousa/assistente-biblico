@@ -1,7 +1,7 @@
 {
   "name": "Assistente Bíblico CBR",
   "short_name": "Assistente CBR",
-  "description": "Um chatbot inteligente alimentado pelo Gemini, projetado para fornecer insights, responder perguntas e discutir tópicos relacionados à Bíblia Sagrada. Possui vários modos, incluindo respostas rápidas, pensamento profundo e respostas baseadas na web.",
+  "description": "An intelligent chatbot powered by Gemini, designed to provide insights, answer questions, and discuss topics related to the Holy Bible. Features multiple modes including fast responses, deep thinking, and web-grounded answers.",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",
