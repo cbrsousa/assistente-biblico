@@ -78,39 +78,51 @@ const App: React.FC = () => {
     setBookmarks([]);
   };
 
-  const handleUpdateApiKey = async (newKey: string) => {
-    // Always save to localStorage as a primary or fallback mechanism
-    localStorage.setItem(API_KEY_LOCALSTORAGE_KEY, newKey);
-    
+  const handleUpdateProfile = useCallback(async (updates: Partial<User>) => {
     if (!currentUser?.id) {
-        // If not logged in, just updating local state is enough for now
-        setCurrentUser(prev => prev ? { ...prev, geminiApiKey: newKey } : null);
-        return;
+      setCurrentUser(prev => prev ? { ...prev, ...updates } : null);
+      return;
     }
-    
-    // Using upsert in case the profile record doesn't exist yet
+
+    const supabaseUpdates: any = {
+      id: currentUser.id,
+      updated_at: new Date().toISOString()
+    };
+
+    if (updates.geminiApiKey !== undefined) supabaseUpdates.gemini_api_key = updates.geminiApiKey;
+    if (updates.theme !== undefined) supabaseUpdates.theme = updates.theme;
+    if (updates.fontSize !== undefined) supabaseUpdates.font_size = updates.fontSize;
+    if (updates.name !== undefined) supabaseUpdates.full_name = updates.name;
+
     const { error: updateError } = await supabase
       .from('profiles')
-      .upsert({ 
-        id: currentUser.id,
-        gemini_api_key: newKey, 
-        updated_at: new Date().toISOString() 
-      });
+      .upsert(supabaseUpdates);
 
     if (updateError) {
-      console.warn("Não foi possível salvar no Supabase, mas a chave foi salva localmente:", updateError);
-      // Não queremos incomodar o usuário com um erro permanente se for apenas uma tabela ausente,
-      // mas ainda assim devemos informá-lo de forma menos intrusiva se for um erro real.
-      if (updateError.message.includes('schema cache')) {
-        console.log("A tabela 'profiles' não foi encontrada no Supabase. Usando armazenamento local.");
-      } else {
-        setError(`Erro ao salvar na nuvem: ${updateError.message}. A chave foi salva localmente.`);
+      console.warn("Erro ao sincronizar perfil com Supabase:", updateError);
+      if (!updateError.message.includes('schema cache')) {
+        setError(`Erro de sincronização: ${updateError.message}`);
       }
     } else {
       setError(null);
     }
-    
-    setCurrentUser(prev => prev ? { ...prev, geminiApiKey: newKey } : null);
+
+    setCurrentUser(prev => prev ? { ...prev, ...updates } : null);
+  }, [currentUser?.id]);
+
+  const handleUpdateApiKey = (newKey: string) => {
+    localStorage.setItem(API_KEY_LOCALSTORAGE_KEY, newKey);
+    handleUpdateProfile({ geminiApiKey: newKey });
+  };
+
+  const handleUpdateTheme = (newTheme: Theme) => {
+    setTheme(newTheme);
+    handleUpdateProfile({ theme: newTheme });
+  };
+
+  const handleUpdateFontSize = (newSize: FontSize) => {
+    setFontSize(newSize);
+    handleUpdateProfile({ fontSize: newSize });
   };
 
   // Auth State Listener
@@ -122,16 +134,23 @@ const App: React.FC = () => {
       if (session?.user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('gemini_api_key')
+          .select('gemini_api_key, theme, font_size')
           .eq('id', session.user.id)
           .single();
 
-        setCurrentUser({
+        const userData: User = {
           id: session.user.id,
           name: session.user.user_metadata.full_name || 'Usuário',
           email: session.user.email || '',
-          geminiApiKey: profile?.gemini_api_key || localKey || undefined
-        });
+          geminiApiKey: profile?.gemini_api_key || localKey || undefined,
+          theme: profile?.theme as any,
+          fontSize: profile?.font_size as any,
+        };
+
+        if (profile?.theme) setTheme(profile.theme as Theme);
+        if (profile?.font_size) setFontSize(profile.font_size as FontSize);
+
+        setCurrentUser(userData);
       } else if (localKey) {
         // We can have a local key even without a user session if we allow it
         // but for now let's just keep it in mind
@@ -146,16 +165,23 @@ const App: React.FC = () => {
         // Fetch profile
         const { data: profile } = await supabase
           .from('profiles')
-          .select('gemini_api_key')
+          .select('gemini_api_key, theme, font_size')
           .eq('id', session.user.id)
           .single();
 
-        setCurrentUser({
+        const userData: User = {
           id: session.user.id,
           name: session.user.user_metadata.full_name || 'Usuário',
           email: session.user.email || '',
-          geminiApiKey: profile?.gemini_api_key || localKey || undefined
-        });
+          geminiApiKey: profile?.gemini_api_key || localKey || undefined,
+          theme: profile?.theme as any,
+          fontSize: profile?.font_size as any,
+        };
+
+        if (profile?.theme) setTheme(profile.theme as Theme);
+        if (profile?.font_size) setFontSize(profile.font_size as FontSize);
+
+        setCurrentUser(userData);
       } else {
         setCurrentUser(null);
         setMessages([]);
@@ -224,7 +250,11 @@ const App: React.FC = () => {
           ...prev!,
           name: profileData.full_name || prev!.name,
           geminiApiKey: profileData.gemini_api_key,
+          theme: profileData.theme,
+          fontSize: profileData.font_size,
         }));
+        if (profileData.theme) setTheme(profileData.theme as Theme);
+        if (profileData.font_size) setFontSize(profileData.font_size as FontSize);
       }
 
       // Carregar Mensagens
@@ -549,9 +579,9 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
           currentMode={mode} 
           onModeChange={setMode} 
           fontSize={fontSize}
-          onFontSizeChange={setFontSize}
+          onFontSizeChange={handleUpdateFontSize}
           theme={theme}
-          onThemeChange={setTheme}
+          onThemeChange={handleUpdateTheme}
           onToggleNav={() => setIsNavOpen(!isNavOpen)}
           onToggleBookmarks={() => setIsBookmarksOpen(!isBookmarksOpen)}
           isMobile={isMobile}

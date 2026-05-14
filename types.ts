@@ -26,6 +26,8 @@ export interface User {
   name: string;
   email: string;
   geminiApiKey?: string;
+  theme?: 'light' | 'dark' | 'system';
+  fontSize?: 'text-sm' | 'text-base' | 'text-lg';
 }
 
 declare global {

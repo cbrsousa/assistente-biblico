@@ -44,6 +44,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         
         if (data.user) {
           onLogin({ 
+            id: data.user.id,
             name: data.user.user_metadata.full_name || 'Usuário', 
             email: data.user.email || '' 
           });
@@ -59,6 +60,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
 
         if (data.user) {
           onLogin({ 
+            id: data.user.id,
             name: data.user.user_metadata.full_name || 'Usuário', 
             email: data.user.email || '' 
           });
