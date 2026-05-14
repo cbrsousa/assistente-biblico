@@ -25,6 +25,7 @@ export interface User {
   id?: string;
   name: string;
   email: string;
+  whatsapp?: string;
   geminiApiKey?: string;
   theme?: 'light' | 'dark' | 'system';
   fontSize?: 'text-sm' | 'text-base' | 'text-lg';

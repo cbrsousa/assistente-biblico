@@ -93,6 +93,7 @@ const App: React.FC = () => {
     if (updates.theme !== undefined) supabaseUpdates.theme = updates.theme;
     if (updates.fontSize !== undefined) supabaseUpdates.font_size = updates.fontSize;
     if (updates.name !== undefined) supabaseUpdates.full_name = updates.name;
+    if (updates.whatsapp !== undefined) supabaseUpdates.whatsapp = updates.whatsapp;
 
     const { error: updateError } = await supabase
       .from('profiles')
@@ -134,7 +135,7 @@ const App: React.FC = () => {
       if (session?.user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('gemini_api_key, theme, font_size')
+          .select('gemini_api_key, theme, font_size, whatsapp')
           .eq('id', session.user.id)
           .single();
 
@@ -142,6 +143,7 @@ const App: React.FC = () => {
           id: session.user.id,
           name: session.user.user_metadata.full_name || 'Usuário',
           email: session.user.email || '',
+          whatsapp: profile?.whatsapp || session.user.user_metadata.whatsapp || undefined,
           geminiApiKey: profile?.gemini_api_key || localKey || undefined,
           theme: profile?.theme as any,
           fontSize: profile?.font_size as any,
@@ -165,7 +167,7 @@ const App: React.FC = () => {
         // Fetch profile
         const { data: profile } = await supabase
           .from('profiles')
-          .select('gemini_api_key, theme, font_size')
+          .select('gemini_api_key, theme, font_size, whatsapp')
           .eq('id', session.user.id)
           .single();
 
@@ -173,6 +175,7 @@ const App: React.FC = () => {
           id: session.user.id,
           name: session.user.user_metadata.full_name || 'Usuário',
           email: session.user.email || '',
+          whatsapp: profile?.whatsapp || session.user.user_metadata.whatsapp || undefined,
           geminiApiKey: profile?.gemini_api_key || localKey || undefined,
           theme: profile?.theme as any,
           fontSize: profile?.font_size as any,
@@ -249,6 +252,7 @@ const App: React.FC = () => {
         setCurrentUser(prev => ({
           ...prev!,
           name: profileData.full_name || prev!.name,
+          whatsapp: profileData.whatsapp || prev!.whatsapp,
           geminiApiKey: profileData.gemini_api_key,
           theme: profileData.theme,
           fontSize: profileData.font_size,
@@ -588,8 +592,10 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
           isDesktopLayout={isDesktopLayout}
           onLogout={handleLogout}
           userName={currentUser.name}
+          whatsapp={currentUser.whatsapp}
           geminiApiKey={currentUser.geminiApiKey}
           onUpdateApiKey={handleUpdateApiKey}
+          onUpdateProfile={handleUpdateProfile}
         />
         <div className="flex-1 flex overflow-hidden">
           <main className="flex-1 flex flex-col overflow-hidden bg-gray-200 dark:bg-gray-800">

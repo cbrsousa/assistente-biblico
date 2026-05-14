@@ -19,8 +19,10 @@ interface HeaderProps {
   isDesktopLayout: boolean;
   onLogout: () => void;
   userName?: string;
+  whatsapp?: string;
   geminiApiKey?: string;
   onUpdateApiKey: (key: string) => Promise<void>;
+  onUpdateProfile: (updates: Partial<User>) => Promise<void>;
 }
 
 const Header: React.FC<HeaderProps> = ({ 
@@ -36,17 +38,25 @@ const Header: React.FC<HeaderProps> = ({
   isDesktopLayout,
   onLogout,
   userName,
+  whatsapp,
   geminiApiKey,
-  onUpdateApiKey
+  onUpdateApiKey,
+  onUpdateProfile
 }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [tempApiKey, setTempApiKey] = useState(geminiApiKey || '');
+  const [tempWhatsapp, setTempWhatsapp] = useState(whatsapp || '');
   const [isSavingKey, setIsSavingKey] = useState(false);
+  const [isSavingWhatsapp, setIsSavingWhatsapp] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setTempApiKey(geminiApiKey || '');
   }, [geminiApiKey]);
+
+  useEffect(() => {
+    setTempWhatsapp(whatsapp || '');
+  }, [whatsapp]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -146,6 +156,34 @@ const Header: React.FC<HeaderProps> = ({
                  >
                     {fontSize === 'text-sm' ? 'Pequeno' : fontSize === 'text-base' ? 'Normal' : 'Grande'}
                 </button>
+              </div>
+
+              <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+
+              <div className="px-4 py-2">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider font-semibold">Seu WhatsApp</p>
+                <div className="flex flex-col space-y-2">
+                    <input
+                        type="tel"
+                        value={tempWhatsapp}
+                        onChange={(e) => setTempWhatsapp(e.target.value)}
+                        placeholder="(00) 00000-0000"
+                        className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                    <button
+                        onClick={async () => {
+                            setIsSavingWhatsapp(true);
+                            await onUpdateProfile({ whatsapp: tempWhatsapp });
+                            setIsSavingWhatsapp(false);
+                        }}
+                        disabled={isSavingWhatsapp}
+                        className={`w-full py-1.5 text-xs font-semibold text-white rounded shadow-sm transition-all ${
+                            isSavingWhatsapp ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 active:scale-95'
+                        }`}
+                    >
+                        {isSavingWhatsapp ? 'Salvando...' : 'Atualizar WhatsApp'}
+                    </button>
+                </div>
               </div>
 
               <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>

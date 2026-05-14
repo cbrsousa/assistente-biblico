@@ -11,6 +11,7 @@ interface LoginScreenProps {
 const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   const [isRegistering, setIsRegistering] = useState(false);
   const [name, setName] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +22,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     setError(null);
     setLoading(true);
 
-    if (!email || !password || (isRegistering && !name)) {
+    if (!email || !password || (isRegistering && (!name || !whatsapp))) {
       setError('Por favor, preencha todos os campos.');
       setLoading(false);
       return;
@@ -36,6 +37,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
           options: {
             data: {
               full_name: name,
+              whatsapp: whatsapp,
             },
           },
         });
@@ -45,8 +47,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         if (data.user) {
           onLogin({ 
             id: data.user.id,
-            name: data.user.user_metadata.full_name || 'Usuário', 
-            email: data.user.email || '' 
+            name: data.user.user_metadata.full_name || name || 'Usuário', 
+            email: data.user.email || email,
+            whatsapp: data.user.user_metadata.whatsapp || whatsapp
           });
         }
       } else {
@@ -62,13 +65,30 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
           onLogin({ 
             id: data.user.id,
             name: data.user.user_metadata.full_name || 'Usuário', 
-            email: data.user.email || '' 
+            email: data.user.email || '',
+            whatsapp: data.user.user_metadata.whatsapp
           });
         }
       }
     } catch (err: any) {
       console.error('Supabase auth error:', err);
-      setError(err.message || 'Ocorreu um erro na autenticação.');
+      let errorMessage = err.message || 'Ocorreu um erro na autenticação.';
+      
+      if (errorMessage.includes('Email rate limit exceeded')) {
+        errorMessage = 'Limite de e-mails do servidor excedido. Isso acontece porque o sistema gratuito do Supabase tem limites estritos. Por favor: 1) Verifique sua caixa de entrada e SPAM se já tentou se cadastrar; 2) Se você já criou a conta, tente apenas fazer LOGIN; 3) Aguarde de 15 a 30 minutos para tentar novamente.';
+      } else if (errorMessage.includes('Invalid login credentials')) {
+        errorMessage = 'E-mail ou senha incorretos. Verifique se digitou corretamente ou se já confirmou seu cadastro por e-mail.';
+      } else if (errorMessage.includes('User already registered')) {
+        errorMessage = 'Este e-mail já está cadastrado. Tente entrar em vez de criar uma conta.';
+      } else if (errorMessage.includes('Database error saving new user')) {
+        errorMessage = 'Erro no banco de dados ao criar seu perfil. Isso geralmente ocorre se o WhatsApp foi adicionado mas a tabela do Supabase ainda não foi atualizada. Por favor, execute o script SQL de migração no seu painel do Supabase.';
+      }
+      
+      setError(errorMessage);
+      if (errorMessage.includes('Email rate limit exceeded') && isRegistering) {
+        // Sugere ir para o login se falhou o registro por excesso de e-mail
+        // (pode ser que a conta ja tenha sido criada mas o email falhou)
+      }
     } finally {
       setLoading(false);
     }
@@ -98,6 +118,21 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                             onChange={(e) => setName(e.target.value)}
                             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                             placeholder="Seu nome"
+                        />
+                    </div>
+                )}
+
+                {isRegistering && (
+                    <div>
+                        <label htmlFor="whatsapp" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">WhatsApp</label>
+                        <input
+                            id="whatsapp"
+                            type="tel"
+                            required
+                            value={whatsapp}
+                            onChange={(e) => setWhatsapp(e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                            placeholder="(00) 00000-0000"
                         />
                     </div>
                 )}

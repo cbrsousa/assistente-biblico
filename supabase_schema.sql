@@ -5,12 +5,21 @@
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   full_name TEXT,
+  whatsapp TEXT,
   gemini_api_key TEXT,
   theme TEXT DEFAULT 'system',
   font_size TEXT DEFAULT 'text-base',
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Adicionar coluna whatsapp se não existir
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profiles' AND column_name='whatsapp') THEN
+    ALTER TABLE public.profiles ADD COLUMN whatsapp TEXT;
+  END IF;
+END $$;
 
 -- Tabela de Histórico de Mensagens
 CREATE TABLE IF NOT EXISTS public.messages (
@@ -88,8 +97,18 @@ USING (auth.uid() = user_id);
 CREATE OR REPLACE FUNCTION public.handle_new_user() 
 RETURNS trigger AS $$
 BEGIN
+  INSERT INTO public.profiles (id, full_name, whatsapp)
+  VALUES (new.id, new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'whatsapp')
+  ON CONFLICT (id) DO UPDATE SET
+    full_name = EXCLUDED.full_name,
+    whatsapp = EXCLUDED.whatsapp;
+  RETURN new;
+EXCEPTION WHEN OTHERS THEN
+  -- Fallback para garantir que o usuário seja criado mesmo se houver erro no perfil
+  -- Isso evita o erro "Database error saving new user" que bloqueia o cadastro
   INSERT INTO public.profiles (id, full_name)
-  VALUES (new.id, new.raw_user_meta_data->>'full_name');
+  VALUES (new.id, new.raw_user_meta_data->>'full_name')
+  ON CONFLICT (id) DO NOTHING;
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
