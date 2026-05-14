@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import type { Message, Bookmark } from '../types';
 import type { FontSize } from '../App';
 import WelcomeMessage from './WelcomeMessage';
@@ -11,55 +13,65 @@ const bibleVerseRegex = new RegExp(
   'gi'
 );
 
-interface FormattedMessageProps {
+interface MarkdownMessageProps {
   text: string;
   onSendMessage: (prompt: string) => void;
 }
 
 /**
- * A component that parses a string for Bible verses and turns them into clickable buttons
- * that trigger an in-app action to display the verse.
+ * A component that renders markdown and turns Bible verses into clickable buttons.
  */
-const FormattedMessage: React.FC<FormattedMessageProps> = React.memo(function FormattedMessage({ text, onSendMessage }) {
-  const parts: React.ReactNode[] = [];
-  let lastIndex = 0;
+const MarkdownMessage: React.FC<MarkdownMessageProps> = ({ text, onSendMessage }) => {
+  return (
+    <div className="prose dark:prose-invert max-w-none prose-sm sm:prose-base prose-p:my-1 prose-headings:mb-2 prose-headings:mt-4 first:prose-headings:mt-0">
+      <ReactMarkdown 
+        remarkPlugins={[remarkGfm]}
+        components={{
+          // We apply the verse button logic to text nodes
+          text: ({ value }) => {
+            const parts: React.ReactNode[] = [];
+            let lastIndex = 0;
+            const matches = Array.from(value.matchAll(bibleVerseRegex));
 
-  for (const match of text.matchAll(bibleVerseRegex)) {
-    const [fullMatch] = match;
-    const startIndex = match.index!;
+            if (matches.length === 0) return <>{value}</>;
 
-    // Add the text before the citation
-    if (startIndex > lastIndex) {
-      parts.push(text.substring(lastIndex, startIndex));
-    }
+            for (const match of matches) {
+              const [fullMatch] = match;
+              const startIndex = match.index!;
 
-    // Add the citation as a button
-    parts.push(
-      <button
-        key={startIndex}
-        onClick={() => onSendMessage(`Mostre-me o versículo ${fullMatch}.`)}
-        className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-md px-1.5 py-0.5 mx-0.5 font-medium hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors no-underline cursor-pointer"
-        title={`Ver o texto de ${fullMatch}`}
+              if (startIndex > lastIndex) {
+                parts.push(value.substring(lastIndex, startIndex));
+              }
+
+              parts.push(
+                <button
+                  key={startIndex}
+                  onClick={() => onSendMessage(`Mostre-me o versículo ${fullMatch}.`)}
+                  className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded px-1 font-medium hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors mx-0.5 inline-block"
+                  title={`Ver o texto de ${fullMatch}`}
+                >
+                  {fullMatch}
+                </button>
+              );
+
+              lastIndex = startIndex + fullMatch.length;
+            }
+
+            if (lastIndex < value.length) {
+              parts.push(value.substring(lastIndex));
+            }
+
+            return <>{parts.map((part, index) => <React.Fragment key={index}>{part}</React.Fragment>)}</>;
+          },
+          // Ensure links open in new tab
+          a: ({ node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline" />
+        }}
       >
-        {fullMatch}
-      </button>
-    );
-
-    lastIndex = startIndex + fullMatch.length;
-  }
-
-  // Add any remaining text after the last citation
-  if (lastIndex < text.length) {
-    parts.push(text.substring(lastIndex));
-  }
-  
-  // If no verses were found, return the original text
-  if (parts.length === 0) {
-    return <>{text}</>;
-  }
-
-  return <>{parts.map((part, index) => <React.Fragment key={index}>{part}</React.Fragment>)}</>;
-});
+        {text}
+      </ReactMarkdown>
+    </div>
+  );
+};
 
 
 interface MessageBubbleProps {
@@ -118,8 +130,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(function MessageB
                 </button>
             </div>
         )}
-        <div className={`${fontSize} whitespace-pre-wrap leading-relaxed ${isModel ? 'pr-12' : ''}`}>
-          {isModel ? <FormattedMessage text={message.text} onSendMessage={onSendMessage} /> : message.text}
+        <div className={`${fontSize} leading-relaxed ${isModel ? 'pr-12' : ''}`}>
+          {isModel ? <MarkdownMessage text={message.text} onSendMessage={onSendMessage} /> : message.text}
         </div>
         {message.sources && message.sources.length > 0 && (
           <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">

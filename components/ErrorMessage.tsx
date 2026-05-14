@@ -12,9 +12,25 @@ const ErrorMessage: React.FC<ErrorMessageProps> = ({ message, onClear }) => {
       className="max-w-4xl mx-auto bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-200 px-4 py-3 rounded-md relative mb-4 flex justify-between items-center shadow-lg" 
       role="alert"
     >
-      <div>
-        <strong className="font-bold">Erro: </strong>
-        <span className="block sm:inline text-base">{message}</span>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+        <div>
+          <strong className="font-bold">Erro: </strong>
+          <span className="block sm:inline text-base">{message}</span>
+        </div>
+        {(message.toLowerCase().includes('chave de api') || message.toLowerCase().includes('api key')) && (
+          <button
+            onClick={async () => {
+              if (window.aistudio?.openSelectKey) {
+                await window.aistudio.openSelectKey();
+              } else {
+                alert("Por favor, acesse Configurações > Segredos no menu lateral do AI Studio para configurar sua GEMINI_API_KEY.");
+              }
+            }}
+            className="ml-0 sm:ml-4 px-3 py-1 bg-red-200 dark:bg-red-800 hover:bg-red-300 dark:hover:bg-red-700 text-red-800 dark:text-red-100 rounded text-sm font-medium transition-colors border border-red-300 dark:border-red-600"
+          >
+            Configurar Chave
+          </button>
+        )}
       </div>
       <button
         onClick={onClear}

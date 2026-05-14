@@ -1,7 +1,7 @@
 
 export type Role = 'user' | 'model';
 
-export type ChatMode = 'standard' | 'fast' | 'deepThought' | 'webSearch';
+export type ChatMode = 'standard' | 'fast' | 'deepThought';
 
 export interface Source {
   title: string;
@@ -25,5 +25,17 @@ export interface User {
   id?: string;
   name: string;
   email: string;
+  whatsapp?: string;
   geminiApiKey?: string;
+  theme?: 'light' | 'dark' | 'system';
+  fontSize?: 'text-sm' | 'text-base' | 'text-lg';
+}
+
+declare global {
+  interface Window {
+    aistudio: {
+      hasSelectedApiKey: () => Promise<boolean>;
+      openSelectKey: () => Promise<void>;
+    };
+  }
 }

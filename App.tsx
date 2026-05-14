@@ -6,12 +6,12 @@ import ChatInput from './components/ChatInput';
 import ErrorMessage from './components/ErrorMessage';
 import BookmarksPanel from './components/BookmarksPanel';
 import BibleNavPanel from './components/BibleNavPanel';
-import ApiKeyScreen from './components/ApiKeyScreen';
 import LoginScreen from './components/LoginScreen';
-import { generateResponse, initializeAi } from './services/geminiService';
+import { generateResponse } from './services/geminiService';
 import { supabase } from './lib/supabase';
 import { verses } from './data/verses';
 import { suggestionPrompts } from './data/suggestions';
+import { fetchVerseFromBibleApi } from './services/bibleApiService';
 import type { Message, ChatMode, Bookmark, User } from './types';
 
 // Simplified localStorage keys for a single, public experience
@@ -66,92 +66,127 @@ const App: React.FC = () => {
   const isMobile = breakpoint === 'xs';
   const isDesktopLayout = breakpoint !== 'xs' && breakpoint !== 'sm';
   
-  const [isInitialized, setIsInitialized] = useState<boolean>(false);
-  const [initError, setInitError] = useState<string | null>(null);
-  const [isShowingApiKeyScreen, setIsShowingApiKeyScreen] = useState<boolean>(false);
-
-  // Attempt to initialize the AI service when user or environment changes
-  useEffect(() => {
-    const attemptInitialization = () => {
-      // The environment variable is prioritized for deployed instances.
-    const envKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
-    // The stored key is the user-provided fallback (Supabase first, then local storage).
-    const storedKey = currentUser?.geminiApiKey || localStorage.getItem(API_KEY_LOCALSTORAGE_KEY);
-    
-    const keyToTry = envKey || storedKey;
-
-    if (keyToTry) {
-      if (initializeAi(keyToTry)) {
-        setIsInitialized(true);
-      } else {
-        // Only set error if we explicitly have a key that failed
-        if (storedKey && !envKey) {
-          setInitError("A chave de API salva em seu perfil é inválida. Atualize-a.");
-        }
-      }
-    } else {
-      // If we don't have a key, we'll try to use the environment one anyway or just wait
-      setIsInitialized(false);
-    }
-  };
-  attemptInitialization();
-}, [currentUser?.geminiApiKey]);
-
-  // Handler for when the user saves a new API key from the ApiKeyScreen
-  const handleApiKeySave = async (key: string) => {
-    if (initializeAi(key)) {
-        if (currentUser?.id) {
-          try {
-            const { error } = await supabase
-              .from('profiles')
-              .upsert({ id: currentUser.id, gemini_api_key: key });
-            if (error) throw error;
-            setCurrentUser(prev => prev ? { ...prev, geminiApiKey: key } : null);
-          } catch (err) {
-            console.error('Error saving API key to Supabase:', err);
-          }
-        }
-        localStorage.setItem(API_KEY_LOCALSTORAGE_KEY, key);
-        setIsInitialized(true);
-        setInitError(null);
-    } else {
-        setInitError("A chave de API fornecida é inválida. Verifique a chave e tente novamente.");
-    }
-  };
-
   // Auth Handlers
   const handleLogin = (user: User) => {
     setCurrentUser(user);
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    if (supabase.auth && typeof supabase.auth.signOut === 'function') {
+      await supabase.auth.signOut();
+    }
     setCurrentUser(null);
     setMessages([]);
     setBookmarks([]);
   };
 
+  const handleUpdateProfile = useCallback(async (updates: Partial<User>) => {
+    if (!currentUser?.id) {
+      setCurrentUser(prev => prev ? { ...prev, ...updates } : null);
+      return;
+    }
+
+    const supabaseUpdates: any = {
+      id: currentUser.id,
+      updated_at: new Date().toISOString()
+    };
+
+    if (updates.geminiApiKey !== undefined) supabaseUpdates.gemini_api_key = updates.geminiApiKey;
+    if (updates.theme !== undefined) supabaseUpdates.theme = updates.theme;
+    if (updates.fontSize !== undefined) supabaseUpdates.font_size = updates.fontSize;
+    if (updates.name !== undefined) supabaseUpdates.full_name = updates.name;
+    if (updates.whatsapp !== undefined) supabaseUpdates.whatsapp = updates.whatsapp;
+
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .upsert(supabaseUpdates);
+
+    if (updateError) {
+      console.warn("Erro ao sincronizar perfil com Supabase:", updateError);
+      if (!updateError.message.includes('schema cache')) {
+        setError(`Erro de sincronização: ${updateError.message}`);
+      }
+    } else {
+      setError(null);
+    }
+
+    setCurrentUser(prev => prev ? { ...prev, ...updates } : null);
+  }, [currentUser?.id]);
+
+  const handleUpdateApiKey = (newKey: string) => {
+    localStorage.setItem(API_KEY_LOCALSTORAGE_KEY, newKey);
+    handleUpdateProfile({ geminiApiKey: newKey });
+  };
+
+  const handleUpdateTheme = (newTheme: Theme) => {
+    setTheme(newTheme);
+    handleUpdateProfile({ theme: newTheme });
+  };
+
+  const handleUpdateFontSize = (newSize: FontSize) => {
+    setFontSize(newSize);
+    handleUpdateProfile({ fontSize: newSize });
+  };
+
   // Auth State Listener
   useEffect(() => {
     // Check active sessions and sets the user
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      const localKey = localStorage.getItem(API_KEY_LOCALSTORAGE_KEY);
+      
       if (session?.user) {
-        setCurrentUser({
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('gemini_api_key, theme, font_size, whatsapp')
+          .eq('id', session.user.id)
+          .single();
+
+        const userData: User = {
           id: session.user.id,
           name: session.user.user_metadata.full_name || 'Usuário',
           email: session.user.email || '',
-        });
+          whatsapp: profile?.whatsapp || session.user.user_metadata.whatsapp || undefined,
+          geminiApiKey: profile?.gemini_api_key || localKey || undefined,
+          theme: profile?.theme as any,
+          fontSize: profile?.font_size as any,
+        };
+
+        if (profile?.theme) setTheme(profile.theme as Theme);
+        if (profile?.font_size) setFontSize(profile.font_size as FontSize);
+
+        setCurrentUser(userData);
+      } else if (localKey) {
+        // We can have a local key even without a user session if we allow it
+        // but for now let's just keep it in mind
       }
     });
 
     // Listen for changes on auth state (sign in, sign out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      const localKey = localStorage.getItem(API_KEY_LOCALSTORAGE_KEY);
+      
       if (session?.user) {
-        setCurrentUser({
+        // Fetch profile
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('gemini_api_key, theme, font_size, whatsapp')
+          .eq('id', session.user.id)
+          .single();
+
+        const userData: User = {
           id: session.user.id,
           name: session.user.user_metadata.full_name || 'Usuário',
           email: session.user.email || '',
-        });
+          whatsapp: profile?.whatsapp || session.user.user_metadata.whatsapp || undefined,
+          geminiApiKey: profile?.gemini_api_key || localKey || undefined,
+          theme: profile?.theme as any,
+          fontSize: profile?.font_size as any,
+        };
+
+        if (profile?.theme) setTheme(profile.theme as Theme);
+        if (profile?.font_size) setFontSize(profile.font_size as FontSize);
+
+        setCurrentUser(userData);
       } else {
         setCurrentUser(null);
         setMessages([]);
@@ -206,7 +241,7 @@ const App: React.FC = () => {
     const loadUserData = async () => {
       if (!currentUser?.id) return;
 
-      // Load Profile (including Gemini API Key)
+      // Carregar Perfil (incluindo a Chave de API do Gemini)
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -214,16 +249,21 @@ const App: React.FC = () => {
         .single();
 
       if (profileError && profileError.code !== 'PGRST116') {
-        console.error('Error loading profile:', profileError);
+        console.error('Erro ao carregar perfil:', profileError);
       } else if (profileData) {
         setCurrentUser(prev => ({
           ...prev!,
           name: profileData.full_name || prev!.name,
+          whatsapp: profileData.whatsapp || prev!.whatsapp,
           geminiApiKey: profileData.gemini_api_key,
+          theme: profileData.theme,
+          fontSize: profileData.font_size,
         }));
+        if (profileData.theme) setTheme(profileData.theme as Theme);
+        if (profileData.font_size) setFontSize(profileData.font_size as FontSize);
       }
 
-      // Load Messages
+      // Carregar Mensagens
       const { data: messagesData, error: messagesError } = await supabase
         .from('messages')
         .select('*')
@@ -231,7 +271,7 @@ const App: React.FC = () => {
         .order('created_at', { ascending: true });
 
       if (messagesError) {
-        console.error('Error loading messages:', messagesError);
+        console.error('Erro ao carregar mensagens:', messagesError);
       } else if (messagesData) {
         setMessages(messagesData.map(m => ({
           id: m.id,
@@ -241,14 +281,14 @@ const App: React.FC = () => {
         })));
       }
 
-      // Load Bookmarks
+      // Carregar Favoritos
       const { data: bookmarksData, error: bookmarksError } = await supabase
         .from('bookmarks')
         .select('*')
         .eq('user_id', currentUser.id);
 
       if (bookmarksError) {
-        console.error('Error loading bookmarks:', bookmarksError);
+        console.error('Erro ao carregar favoritos:', bookmarksError);
       } else if (bookmarksData) {
         setBookmarks(bookmarksData.map(b => ({
           id: b.id,
@@ -313,7 +353,7 @@ const App: React.FC = () => {
         role: userMessage.role,
         text: userMessage.text,
       }).then(({ error }) => {
-        if (error) console.error('Error saving user message:', error);
+        if (error) console.error('Erro ao salvar mensagem do usuário:', error);
       });
     }
     
@@ -321,18 +361,71 @@ const App: React.FC = () => {
     setMessages(prev => [...prev, userMessage]);
     
     let finalPrompt = prompt;
+
+    if (prompt.startsWith('__BIBLE_API_SEARCH__:')) {
+      const query = prompt.substring('__BIBLE_API_SEARCH__:'.length);
+      userMessage.text = `Pesquisar versículo: ${query}`;
+      setIsLoading(true);
+      
+      const results = await fetchVerseFromBibleApi(query);
+      if (results && results.length > 0) {
+        const fullText = results.map(v => `**${v.book} ${v.chapter}:${v.verse}**\n${v.text}`).join('\n\n');
+        const botMessage: Message = {
+          id: crypto.randomUUID(),
+          role: 'model',
+          text: `### 📖 Texto Bíblico Encontrado\n\n${fullText}\n\n---\n*Fonte: Bible-api.com (Tradução Almeida)*`,
+        };
+        setMessages(prev => [...prev, botMessage]);
+        
+        // Save to Supabase
+        if (currentUser?.id) {
+          supabase.from('messages').insert([
+            { id: userMessage.id, user_id: currentUser.id, role: 'user', text: userMessage.text },
+            { id: botMessage.id, user_id: currentUser.id, role: 'model', text: botMessage.text }
+          ]);
+        }
+        
+        setIsLoading(false);
+        return;
+      } else {
+        const botMessage: Message = {
+          id: crypto.randomUUID(),
+          role: 'model',
+          text: `Desculpe, não consegui encontrar a referência "${query}" usando a API de pesquisa rápida. Vou tentar consultar meu conhecimento teológico.`,
+        };
+        setMessages(prev => [...prev, botMessage]);
+        finalPrompt = `Forneça o texto bíblico para "${query}" e um breve comentário pastoral alinhado à Doutrina Batista Renovada e Carismática.`;
+      }
+    }
     
     if (prompt === '__DAILY_DEVOTIONAL_REQUEST__') {
         userMessage.text = "Gerar um devocional diário.";
-        finalPrompt = `Gere um devocional diário rico em detalhes e inspirador. Siga rigorosamente a Doutrina Batista Renovada e Carismática. O devocional deve incluir:
+        finalPrompt = `Gere um devocional diário profundo, rico em detalhes e espiritualmente edificante. Siga rigorosamente a Doutrina Batista Renovada e Carismática. O devocional deve ser estruturado da seguinte forma usando Markdown:
 
-1.  **Versículo Chave**: Um versículo bíblico central para o dia.
-2.  **Contexto Histórico**: Uma explicação breve sobre o contexto em que o versículo foi escrito (quem escreveu, para quem, em que situação).
-3.  **Meditação Teológica**: Uma reflexão profunda sobre o significado espiritual do texto, destacando a soberania de Deus e a obra do Espírito Santo.
-4.  **Aplicação Prática**: Como aplicar este ensinamento na vida cotidiana de forma concreta.
-5.  **Oração do Dia**: Uma oração fervorosa relacionada ao tema.
+# Devocional Diário: [Título Inspirador]
 
-Mantenha um tom acolhedor e encorajador.`;
+### 📖 Versículo Chave
+**[Citação Bíblica]** - "[Texto do versículo]"
+
+### 🏛️ Contexto Histórico e Literário
+[Uma explicação detalhada sobre quem escreveu, o momento histórico, o destinatário original e o propósito da passagem.]
+
+### 🔍 Significado Original (Insights Linguísticos)
+[Análise de 1 ou 2 palavras-chave no original Grego ou Hebraico, fornecendo a transliteração e o significado profundo que amplia a compreensão do texto.]
+
+### 🔥 Meditação Teológica (Palavra Rhema)
+[Uma reflexão profunda sobre o significado espiritual do texto, com foco na soberania de Deus, na obra redentora de Cristo e na atuação dinâmica do Espírito Santo na vida do crente.]
+
+### 🔗 Referências Cruzadas
+[Liste 2 ou 3 versículos que complementam ou reforçam o ensino desta passagem.]
+
+### 🛠️ Aplicação Prática e Desafio
+[Orientações concretas de como viver esta verdade hoje. Inclua um pequeno "Desafio de Fé" para o leitor colocar em prática.]
+
+### 🙏 Oração do Dia
+[Uma oração fervorosa, cheia de fé e gratidão, convidando a presença do Espírito Santo.]
+
+Mantenha um tom pastoral, acolhedor e encorajador.`;
     }
     else if (prompt.startsWith('__GET_ORIGINAL_MEANING__:')) {
         const word = prompt.substring('__GET_ORIGINAL_MEANING__:'.length);
@@ -381,7 +474,8 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
                 }
                 return prev;
               });
-          }
+          },
+          currentUser?.geminiApiKey
       );
       
       // After stream is complete, update the message with the final data (including sources)
@@ -400,22 +494,15 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
           text: finalBotResponse.text,
           sources: finalBotResponse.sources,
         }).then(({ error }) => {
-          if (error) console.error('Error saving bot message:', error);
+          if (error) console.error('Erro ao salvar mensagem do assistente:', error);
         });
       }
 
     } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
-      if (e instanceof Error && (
-            errorMessage.toLowerCase().includes('api key') ||
-            errorMessage.toLowerCase().includes('permission denied')
-         )) {
-        setError("Ocorreu um erro de autenticação com a API. Verifique a configuração.");
-      } else {
-        setError(`${errorMessage}`);
-      }
-      // Revert to the state before adding the user's message
-      setMessages(historyForAPI);
+      const errorMessage = e instanceof Error ? e.message : 'Ocorreu um erro desconhecido.';
+      setError(errorMessage);
+      // Remove the last message (the empty bot message) on error
+      setMessages(prev => prev.filter(m => m.id !== botMessageId));
     } finally {
       setIsLoading(false);
     }
@@ -428,7 +515,7 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
         // Remove from Supabase
         if (currentUser?.id) {
           supabase.from('bookmarks').delete().eq('id', message.id).then(({ error }) => {
-            if (error) console.error('Error removing bookmark:', error);
+            if (error) console.error('Erro ao remover favorito:', error);
           });
         }
         return prev.filter(b => b.id !== message.id);
@@ -440,7 +527,7 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
             ...newBookmark,
             user_id: currentUser.id
           }).then(({ error }) => {
-            if (error) console.error('Error saving bookmark:', error);
+            if (error) console.error('Erro ao salvar favorito:', error);
           });
         }
         return [...prev, newBookmark];
@@ -451,7 +538,7 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
   const handleRemoveBookmark = useCallback((bookmarkId: string) => {
     if (currentUser?.id) {
       supabase.from('bookmarks').delete().eq('id', bookmarkId).then(({ error }) => {
-        if (error) console.error('Error removing bookmark:', error);
+        if (error) console.error('Erro ao remover favorito:', error);
       });
     }
     setBookmarks(prev => prev.filter(b => b.id !== bookmarkId));
@@ -460,7 +547,7 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
   const handleUpdateBookmarkNote = useCallback((bookmarkId: string, notes: string) => {
     if (currentUser?.id) {
       supabase.from('bookmarks').update({ notes }).eq('id', bookmarkId).then(({ error }) => {
-        if (error) console.error('Error updating bookmark note:', error);
+        if (error) console.error('Erro ao atualizar nota do favorito:', error);
       });
     }
     setBookmarks(prev => prev.map(b => b.id === bookmarkId ? { ...b, notes } : b));
@@ -474,30 +561,6 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
 
   return (
     <div className="flex h-screen font-sans bg-gray-100 dark:bg-gray-900 overflow-hidden relative">
-      {/* API Key Modal Overlay */}
-      {isShowingApiKeyScreen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="relative w-full max-w-lg animate-fade-in-up">
-            <button 
-              onClick={() => setIsShowingApiKeyScreen(false)}
-              className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors z-10"
-              aria-label="Fechar"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            <ApiKeyScreen 
-              onSave={(key) => {
-                handleApiKeySave(key);
-                setIsShowingApiKeyScreen(false);
-              }} 
-              initialError={initError} 
-            />
-          </div>
-        </div>
-      )}
-
       <BibleNavPanel
         isOpen={isNavOpen}
         onClose={() => setIsNavOpen(false)}
@@ -522,16 +585,19 @@ Toda a sua resposta, incluindo o texto e os comentários, deve ser estritamente 
           currentMode={mode} 
           onModeChange={setMode} 
           fontSize={fontSize}
-          onFontSizeChange={setFontSize}
+          onFontSizeChange={handleUpdateFontSize}
           theme={theme}
-          onThemeChange={setTheme}
+          onThemeChange={handleUpdateTheme}
           onToggleNav={() => setIsNavOpen(!isNavOpen)}
           onToggleBookmarks={() => setIsBookmarksOpen(!isBookmarksOpen)}
           isMobile={isMobile}
           isDesktopLayout={isDesktopLayout}
           onLogout={handleLogout}
-          onOpenApiKeySettings={() => setIsShowingApiKeyScreen(true)}
           userName={currentUser.name}
+          whatsapp={currentUser.whatsapp}
+          geminiApiKey={currentUser.geminiApiKey}
+          onUpdateApiKey={handleUpdateApiKey}
+          onUpdateProfile={handleUpdateProfile}
         />
         <div className="flex-1 flex overflow-hidden">
           <main className="flex-1 flex flex-col overflow-hidden bg-gray-200 dark:bg-gray-800">
